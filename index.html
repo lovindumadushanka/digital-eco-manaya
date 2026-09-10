@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DIGITAL ECO MANAYA | Sabaragamuwa University of Sri Lanka (SUSL)</title>
+  <meta name="description" content="DIGITAL ECO MANAYA - A professional Tree and Environmental Monitoring Web System for Sabaragamuwa University of Sri Lanka (SUSL). Featuring interactive GIS mapping, botanical records, GPS location tracking, QR code tags, and campus carbon analytics.">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Leaflet.js Mapping Library CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192x192.png">
+  <link rel="apple-touch-icon" href="assets/favicon-192x192.png">
+  <link rel="shortcut icon" href="assets/favicon.ico">
+
+  <!-- Custom Design System Stylesheet -->
+  <link rel="stylesheet" href="css/style.css?v=20260910b">
+</head>
+<body>
+
+  <!-- ==================== Botanical Preloader / Plant Loading Screen ==================== -->
+  <div class="app-preloader" id="app-preloader" role="dialog" aria-label="Loading Digital Eco Manaya">
+    <div class="preloader-backdrop"></div>
+    <div class="preloader-card">
+      <div class="preloader-video-ring">
+        <video autoplay loop muted playsinline class="preloader-video" id="preloader-video-el">
+          <source src="assets/plant-growth.mp4" type="video/mp4">
+        </video>
+        <div class="preloader-emblem-badge">
+          <img src="assets/logo-icon.png" alt="Digital Eco Manaya Logo" class="preloader-emblem-img">
+        </div>
+      </div>
+
+      <div class="preloader-text-group">
+        <h2 class="preloader-brand">DIGITAL ECO <span>MANAYA</span></h2>
+        <div class="preloader-motto">Measure • Manage • Sustain • EcoBusiness</div>
+        <p class="preloader-status" id="preloader-status-text" data-i18n="preloader_text">පැල සහ වෘක්ෂලතා දත්ත පූරණය වෙමින් පවතී...</p>
+      </div>
+
+      <div class="preloader-meter">
+        <div class="preloader-progress-track">
+          <div class="preloader-progress-fill" id="preloader-progress-fill"></div>
+        </div>
+        <div class="preloader-meta-row">
+          <span class="preloader-subtext"><i class="fa-solid fa-seedling"></i> Campus Botanical Records</span>
+          <span class="preloader-counter" id="preloader-counter">0%</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-skip-preloader" id="btn-skip-preloader">
+        <span data-i18n="preloader_skip">කෙලින්ම Dashboard එකට යන්න →</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== Header & Navigation ==================== -->
+  <header class="site-header">
+    <a href="#home-section" class="header-brand" id="brand-link">
+      <div class="brand-logo-wrapper">
+        <img src="assets/logo-icon.png" alt="Digital Eco Manaya Logo" class="brand-logo-img">
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">DIGITAL ECO <span>MANAYA</span></h1>
+        <span class="brand-sub" data-i18n="brand_sub">Sabaragamuwa University of Sri Lanka</span>
+      </div>
+    </a>
+
+    <!-- Navigation Menu Links -->
+    <nav class="header-nav" aria-label="Main Navigation">
+      <a href="#home-section" class="nav-link active" id="nav-home">
+        <i class="fa-solid fa-house"></i> <span data-i18n="nav_home">Home</span>
+      </a>
+      <a href="#about-section" class="nav-link" id="nav-about">
+        <i class="fa-solid fa-circle-info"></i> <span data-i18n="nav_about">About Project</span>
+      </a>
+      <a href="#objectives-section" class="nav-link" id="nav-objectives">
+        <i class="fa-solid fa-bullseye"></i> <span data-i18n="nav_objectives">Objectives</span>
+      </a>
+      <a href="#map-section" class="nav-link" id="nav-map">
+        <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="nav_map">Tree Monitoring</span>
+      </a>
+    </nav>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <!-- Trilingual Language Switcher (සිංහල / English / தமிழ்) -->
+      <div class="lang-switch-wrapper" role="group" aria-label="Language Switcher">
+        <button type="button" class="lang-btn" data-lang="si" title="සිංහල">සිං</button>
+        <button type="button" class="lang-btn active" data-lang="en" title="English">EN</button>
+        <button type="button" class="lang-btn" data-lang="ta" title="தமிழ்">தம</button>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="search-box-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="global-search-input" placeholder="Search trees, tags, species..." data-i18n-placeholder="search_placeholder" autocomplete="off">
+      </div>
+
+      <!-- Add Tree CTA Button -->
+      <button type="button" class="btn btn-primary" id="btn-open-add-tree">
+        <i class="fa-solid fa-plus"></i>
+        <span data-i18n="btn_add_tree">Register Tree</span>
+      </button>
+
+      <!-- Data Options Dropdown -->
+      <div class="dropdown-wrapper" id="data-dropdown-wrapper">
+        <button type="button" class="btn btn-secondary btn-icon" id="btn-data-options" title="Data Export / Import & Options">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+        <div class="dropdown-menu" id="data-dropdown-menu">
+          <button type="button" class="dropdown-item" id="action-export-json">
+            <i class="fa-solid fa-file-code"></i> <span data-i18n="export_json">Export as JSON</span>
+          </button>
+          <button type="button" class="dropdown-item" id="action-export-csv">
+            <i class="fa-solid fa-file-excel"></i> <span data-i18n="export_csv">Export as CSV (Excel)</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" id="action-import-json-btn">
+            <i class="fa-solid fa-file-arrow-up"></i> <span data-i18n="import_json">Import JSON Data</span>
+          </button>
+          <input type="file" id="import-json-file-input" accept=".json" style="display: none;">
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" id="action-reset-sample" style="color: var(--accent-amber);">
+            <i class="fa-solid fa-rotate-left"></i> <span data-i18n="restore_demo">Restore SUSL Demo Trees</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Theme Switcher (Dark / Light) -->
+      <button type="button" class="btn-icon" id="btn-toggle-theme" title="Toggle Light / Dark Mode">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 1. HOMEPAGE / HERO SECTION ==================== -->
+  <section class="hero-section" id="home-section">
+    <div class="hero-container">
+      <div class="hero-badge">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span data-i18n="hero_badge">Sabaragamuwa University of Sri Lanka</span>
+      </div>
+
+      <!-- Center Featured Logo Emblem -->
+      <div class="hero-emblem-badge">
+        <img src="assets/logo-icon.png" alt="Digital Eco Manaya Logo Emblem" class="hero-emblem-img">
+      </div>
+
+      <h2 class="hero-title">
+        <span data-i18n="hero_title_prefix">DIGITAL ECO </span><span class="text-gradient" data-i18n="hero_title_accent">MANAYA</span>
+      </h2>
+
+      <!-- Hero Brand Motto Badge -->
+      <div class="hero-motto-badge">
+        <i class="fa-solid fa-seedling"></i>
+        <span data-i18n="hero_motto">Measure • Manage • Sustain • EcoBusiness Management</span>
+      </div>
+
+      <p class="hero-description">
+        <span data-i18n="hero_desc">An advanced digital botanical monitoring and GIS mapping platform dedicated to tracking, conserving, and cataloguing the flora of Sabaragamuwa University of Sri Lanka.</span>
+        <br>
+        <span style="font-size: 0.95rem; opacity: 0.9;" data-i18n="hero_desc_sub">Smart Botanical Mapping, Real-time GPS Location Tracking, Scannable QR Badges &amp; Carbon Sequestration Registry.</span>
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#map-section" class="btn btn-primary btn-lg" id="btn-hero-explore">
+          <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="btn_explore_map">Explore Live Map</span>
+        </a>
+        <button type="button" class="btn btn-secondary btn-lg" id="btn-hero-add-tree">
+          <i class="fa-solid fa-circle-plus"></i> <span data-i18n="btn_register_tree">Register New Tree</span>
+        </button>
+        <a href="#about-section" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-circle-info"></i> <span data-i18n="nav_about">About Project</span>
+        </a>
+      </div>
+
+      <!-- Key Capabilities Ribbon -->
+      <div class="hero-pills">
+        <div class="hero-pill-item">
+          <i class="fa-solid fa-layer-group"></i>
+          <span data-i18n="pill_gis">Interactive GIS Map</span>
+        </div>
+        <div class="hero-pill-item">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="pill_qr">Printable QR Tree Tags</span>
+        </div>
+        <div class="hero-pill-item">
+          <i class="fa-solid fa-location-crosshairs"></i>
+          <span data-i18n="pill_gps">Precision GPS Geotagging</span>
+        </div>
+        <div class="hero-pill-item">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span data-i18n="pill_carbon">Carbon (CO₂) Sequestration</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== CAMPUS VIDEO BANNER (Full Width Tab) ==================== -->
+  <section class="campus-video-section" id="campus-video-tab">
+    <div class="campus-video-tab-bar">
+      <div class="campus-tab-left">
+        <span class="campus-pulse-dot"></span>
+        <span class="campus-tab-label"><i class="fa-solid fa-video"></i> <span data-i18n="video_live_tag">Digital Eco Manaya • Campus Highlights</span></span>
+      </div>
+      <div class="campus-tab-right">
+        <button class="campus-vid-ctrl" id="cvid-playpause" title="Play / Pause"><i class="fa-solid fa-pause" id="cvid-play-icon"></i></button>
+        <button class="campus-vid-ctrl" id="cvid-mute" title="Mute / Unmute"><i class="fa-solid fa-volume-xmark" id="cvid-mute-icon"></i></button>
+        <button class="campus-vid-ctrl" id="cvid-fullscreen" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+      </div>
+    </div>
+    <div class="campus-video-stage">
+      <video id="campus-hero-video" autoplay loop muted playsinline>
+        <source src="assets/campus-video.mp4" type="video/mp4">
+      </video>
+      <div class="campus-video-gradient-overlay"></div>
+      <div class="campus-video-caption">
+        <div class="campus-caption-badge"><i class="fa-solid fa-leaf"></i> Digital Eco Manaya</div>
+        <h2 class="campus-caption-title" data-i18n="campus_vid_title">Smart Tree Planting Project</h2>
+        <p class="campus-caption-sub" data-i18n="campus_vid_sub">Sabaragamuwa University of Sri Lanka</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. ABOUT OUR PROJECT SECTION ==================== -->
+  <section class="section-wrapper" id="about-section">
+    <div class="section-header">
+      <span class="section-tag" data-i18n="about_tag">Our Vision</span>
+      <h2 class="section-title" data-i18n="about_title">BSc Honours in EcoBusiness Management</h2>
+      <p class="section-desc" data-i18n="about_desc">
+        The objective of the BSc Honours in EcoBusiness Management degree programme is to provide the industry with managers who are capable of performing environmentally friendly business operations.
+      </p>
+    </div>
+
+    <div class="about-grid">
+      <!-- Main Story Card -->
+      <div class="about-card">
+        <div>
+          <h3><i class="fa-solid fa-seedling"></i> DIGITAL ECO MANAYA</h3>
+          <p data-i18n="about_p1">
+            Sabaragamuwa University of Sri Lanka (SUSL) is situated in the scenic and ecologically unique landscape, nestled against the foothills of the central highlands and the Samanalawewa watershed basin. This geographical setting provides habitat for diverse endemic, indigenous, and medicinal plant species.
+          </p>
+          <p data-i18n="about_p2">
+            DIGITAL ECO MANAYA was conceptualized to transition campus botanical management from traditional manual registers to a real-time, interactive, and transparent digital monitoring ecosystem. Through precision GPS mapping, high-resolution photographic archival, and automated botanical record-keeping, every single plant on campus is catalogued and tracked across its complete growth lifecycle.
+          </p>
+
+          <ul class="about-feature-list">
+            <li class="about-feature-item">
+              <i class="fa-solid fa-check-circle"></i>
+              <div><strong data-i18n="about_f1_title">Comprehensive Botanical Census:</strong> <span data-i18n="about_f1_desc">Accurate taxonomic classification including Common, Sinhala, and Botanical scientific names with family and medicinal categorization.</span></div>
+            </li>
+            <li class="about-feature-item">
+              <i class="fa-solid fa-check-circle"></i>
+              <div><strong data-i18n="about_f2_title">Interactive Microclimate &amp; Carbon Accounting:</strong> <span data-i18n="about_f2_desc">Scientific biomass and CO₂ sequestration estimation models based on trunk diameter (DBH) and tree height metrics.</span></div>
+            </li>
+            <li class="about-feature-item">
+              <i class="fa-solid fa-check-circle"></i>
+              <div><strong data-i18n="about_f3_title">Student &amp; Faculty Research Empowerment:</strong> <span data-i18n="about_f3_desc">Open exportable datasets in CSV and JSON formats providing invaluable fieldwork baseline data for agricultural, environmental, and geomatics research.</span></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. PROJECT OBJECTIVES SECTION ==================== -->
+  <section class="section-wrapper" id="objectives-section" style="background: var(--bg-surface); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+    <div class="section-header">
+      <span class="section-tag" data-i18n="obj_tag">Project Objective</span>
+      <h2 class="section-title" data-i18n="obj_title">Digital Eco Manaya</h2>
+      <p class="section-desc" data-i18n="obj_desc">
+        Digital Eco Manaya project aims to develop a Smart Tree Planting Project by monitoring planted trees through a digital platform. The platform will enable us to track tree growth, health, location, and other important information digitally, ensuring effective long-term monitoring and sustainable tree management.
+      </p>
+    </div>
+
+    <div class="objectives-grid">
+
+      <!-- Objective 1 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-map-location-dot"></i>
+          </div>
+          <span class="objective-num">01</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj1_title">Digital GIS Mapping &amp; Census</h3>
+        <p class="objective-desc" data-i18n="obj1_desc">
+          Establish a high-precision GIS inventory of every tree across all SUSL faculties with exact GPS coordinates (Latitude &amp; Longitude), spatial clustering, and satellite layer views.
+        </p>
+      </div>
+
+      <!-- Objective 2 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <span class="objective-num">02</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj2_title">Longitudinal Health Surveillance</h3>
+        <p class="objective-desc" data-i18n="obj2_desc">
+          Track live physical conditions (Thriving, Healthy, Needs Attention, Critical) with disease records, pest detection, and watering logs to ensure rapid remedial care.
+        </p>
+      </div>
+
+      <!-- Objective 3 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          <span class="objective-num">03</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj3_title">Carbon Offset &amp; Climate Action</h3>
+        <p class="objective-desc" data-i18n="obj3_desc">
+          Quantify carbon sequestration based on tree height and trunk DBH allometrics, supporting national climate goals and university sustainability certifications.
+        </p>
+      </div>
+
+      <!-- Objective 4 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <span class="objective-num">04</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj4_title">Smart QR-Code Campus Tagging</h3>
+        <p class="objective-desc" data-i18n="obj4_desc">
+          Generate durable printable QR badges for physical campus trees, allowing students and visitors to scan with smartphones and instantly access complete botanical facts.
+        </p>
+      </div>
+
+      <!-- Objective 5 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-book-open-reader"></i>
+          </div>
+          <span class="objective-num">05</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj5_title">Academic &amp; Student Engagement</h3>
+        <p class="objective-desc" data-i18n="obj5_desc">
+          Foster active environmental responsibility by assigning student societies and faculties as designated caretakers for specific campus flora groves.
+        </p>
+      </div>
+
+      <!-- Objective 6 -->
+      <div class="objective-card">
+        <div class="objective-top">
+          <div class="objective-icon-box">
+            <i class="fa-solid fa-file-export"></i>
+          </div>
+          <span class="objective-num">06</span>
+        </div>
+        <h3 class="objective-title" data-i18n="obj6_title">Open Data &amp; Scientific Export</h3>
+        <p class="objective-desc" data-i18n="obj6_desc">
+          Provide seamless one-click export to CSV (Excel) and JSON standards, fostering open environmental data sharing and multi-year comparative studies.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== 4. TREE MONITORING SYSTEM (MAP & CATALOG) ==================== -->
+  <section class="section-wrapper" id="map-section" style="padding-top: 2.5rem;">
+    <div class="section-header" style="margin-bottom: 1.5rem;">
+      <span class="section-tag" data-i18n="sys_tag">Interactive Campus System</span>
+      <h2 class="section-title" data-i18n="sys_title">Campus Tree Monitoring &amp; Inventory</h2>
+      <p class="section-desc" data-i18n="sys_desc">
+        Explore monitored trees on the interactive campus map, filter by faculty zone, or register new plants.
+      </p>
+    </div>
+
+    <!-- Metrics Overview Ribbon -->
+    <div class="metrics-ribbon" aria-label="Campus Environmental Metrics">
+      <div class="metric-card metric-trees">
+        <div class="metric-icon">
+          <i class="fa-solid fa-tree"></i>
+        </div>
+        <div class="metric-details">
+          <span class="metric-title" data-i18n="metric_total_title">Total Trees</span>
+          <div class="metric-value" id="metric-total-trees">0</div>
+          <span class="metric-subtitle" data-i18n="metric_total_sub">SUSL Campus Inventory</span>
+        </div>
+      </div>
+
+      <div class="metric-card metric-health">
+        <div class="metric-icon">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <div class="metric-details">
+          <span class="metric-title" data-i18n="metric_health_title">Health Index</span>
+          <div class="metric-value" id="metric-health-ratio">0%</div>
+          <span class="metric-subtitle" data-i18n="metric_health_sub">Thriving &amp; Healthy Status</span>
+        </div>
+      </div>
+
+      <div class="metric-card metric-species">
+        <div class="metric-icon">
+          <i class="fa-solid fa-leaf"></i>
+        </div>
+        <div class="metric-details">
+          <span class="metric-title" data-i18n="metric_species_title">Species Count</span>
+          <div class="metric-value" id="metric-species-count">0</div>
+          <span class="metric-subtitle" data-i18n="metric_species_sub">Campus Flora Families</span>
+        </div>
+      </div>
+
+      <div class="metric-card metric-carbon">
+        <div class="metric-icon">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </div>
+        <div class="metric-details">
+          <span class="metric-title" data-i18n="metric_carbon_title">CO₂ Offset</span>
+          <div class="metric-value" id="metric-carbon-offset">0 kg</div>
+          <span class="metric-subtitle" data-i18n="metric_carbon_sub">Estimated Total Absorption</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Controls & Filter Bar -->
+    <div class="controls-bar" aria-label="View and Filter Controls">
+      <!-- View Switch Tabs -->
+      <div class="view-tabs" role="tablist">
+        <button type="button" class="view-tab active" data-view="split" id="tab-view-split" role="tab" aria-selected="true">
+          <i class="fa-solid fa-table-columns"></i>
+          <span data-i18n="tab_split">Map &amp; Catalog</span>
+        </button>
+        <button type="button" class="view-tab" data-view="map" id="tab-view-map" role="tab" aria-selected="false">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span data-i18n="tab_map">Fullscreen Map</span>
+        </button>
+        <button type="button" class="view-tab" data-view="grid" id="tab-view-grid" role="tab" aria-selected="false">
+          <i class="fa-solid fa-grip"></i>
+          <span data-i18n="tab_grid">Grid View</span>
+        </button>
+        <button type="button" class="view-tab" data-view="analytics" id="tab-view-analytics" role="tab" aria-selected="false">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span data-i18n="tab_analytics">SUSL Analytics</span>
+        </button>
+      </div>
+
+      <!-- Filters Group -->
+      <div class="filters-group">
+        <!-- Zone Filter -->
+        <select class="filter-select" id="filter-zone">
+          <option value="all">All SUSL Zones (සියලුම පීඨ / කලාප)</option>
+          <option value="Faculty of Agricultural Sciences">Faculty of Agricultural Sciences</option>
+          <option value="Faculty of Applied Sciences">Faculty of Applied Sciences</option>
+          <option value="Faculty of Geomatics">Faculty of Geomatics</option>
+          <option value="Faculty of Technology">Faculty of Technology</option>
+          <option value="Faculty of Management Studies">Faculty of Management Studies</option>
+          <option value="Faculty of Social Sciences &amp; Languages">Faculty of Social Sciences &amp; Languages</option>
+          <option value="Faculty of Medicine">Faculty of Medicine</option>
+          <option value="Faculty of Computing">Faculty of Computing</option>
+          <option value="Main Administration &amp; Heritage Lawn">Main Administration &amp; Heritage Lawn</option>
+          <option value="Riverine &amp; Eco Trail">Riverine &amp; Eco Trail</option>
+        </select>
+
+        <!-- Health Status Filter -->
+        <select class="filter-select" id="filter-health">
+          <option value="all">All Health (සියලුම සෞඛ්‍ය තත්ව)</option>
+          <option value="Thriving">Thriving (ඉතා සරු)</option>
+          <option value="Healthy">Healthy (නිරෝගී)</option>
+          <option value="Needs Care">Needs Care (අවධානය අවශ්‍ය)</option>
+          <option value="Critical">Critical (අවදානම් / රෝගී)</option>
+        </select>
+
+        <!-- Sort By -->
+        <select class="filter-select" id="filter-sort">
+          <option value="newest">Newest First (අලුත්ම)</option>
+          <option value="name">Name A-Z (නම අනුව)</option>
+          <option value="height">Height (උස අනුව)</option>
+          <option value="carbon">CO₂ Offset (කාබන්)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Main Views Container -->
+    <div class="main-container" style="padding: 0;">
+
+      <!-- View 1: Split View (Interactive Map + Live Catalog List) -->
+      <div class="split-view-container" id="view-split">
+        <!-- Leaflet Interactive Map Panel -->
+        <div class="map-panel" id="map-panel-container">
+          <!-- Pin Dropper Mode Floating Banner -->
+          <div class="map-picker-banner" id="map-picker-banner">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span>Click on the map to set tree location (පැලය ඇති තැන Map එක මත Click කරන්න)</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-picker" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">Done</button>
+          </div>
+
+          <div id="campus-map"></div>
+        </div>
+
+        <!-- Catalog List Panel -->
+        <div class="catalog-panel">
+          <div class="catalog-header">
+            <h2 class="catalog-title">
+              <i class="fa-solid fa-list-check" style="color: var(--primary-600);"></i>
+              <span data-i18n="sys_title">Monitored Trees</span>
+            </h2>
+            <span class="catalog-badge" id="catalog-count-badge">0 trees</span>
+          </div>
+          <div class="catalog-scroll" id="catalog-list">
+            <!-- Dynamic Tree Cards rendered via app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- View 2: Full Grid Cards View -->
+      <div class="grid-view-container" id="view-grid">
+        <!-- Dynamic Grid Cards rendered via app.js -->
+      </div>
+
+      <!-- View 3: Campus Analytics Dashboard View -->
+      <div class="analytics-view-container" id="view-analytics">
+        <!-- Eco Highlights Banner -->
+        <div class="eco-banner">
+          <div class="eco-content">
+            <h3><i class="fa-solid fa-mountain-sun"></i> DIGITAL ECO MANAYA &bull; Campus Microclimate &amp; Carbon Registry</h3>
+            <p>
+              Operating across the scenic campus of Sabaragamuwa University of Sri Lanka, this system calculates individual tree biomass and monitors carbon sequestration in the unique campus watershed environment.
+            </p>
+          </div>
+          <div class="eco-stat-box">
+            <div class="eco-stat-val" id="analytics-annual-carbon">~1.3 t</div>
+            <div class="eco-stat-label">Estimated Annual Absorption</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <!-- Health Status Breakdown Donut Chart -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title"><i class="fa-solid fa-chart-pie" style="color: var(--primary-600); margin-right: 0.5rem;"></i> Tree Health Breakdown</h3>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-health-status"></canvas>
+            </div>
+          </div>
+
+          <!-- Tree Distribution by Campus Zone Bar Chart -->
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title"><i class="fa-solid fa-chart-column" style="color: var(--primary-600); margin-right: 0.5rem;"></i> Trees by Faculty &amp; Zone</h3>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-zone-distribution"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== Modals ==================== -->
+
+  <!-- Modal 1: Add / Edit Tree Modal -->
+  <div class="modal-overlay" id="modal-tree-form" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="form-modal-title">
+          <i class="fa-solid fa-seedling"></i>
+          <span data-i18n="form_add_title">Register New Tree</span>
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="modal-tree-form">&times;</button>
+      </div>
+
+      <form id="form-tree" autocomplete="off">
+        <input type="hidden" id="tree-edit-id" value="">
+
+        <div class="modal-body">
+          <div class="form-grid">
+
+            <!-- Photo Upload & Camera Snapshot -->
+            <div class="form-group col-span-2">
+              <label class="form-label" data-i18n="form_label_photo">Tree Photograph</label>
+              <div class="image-upload-wrapper">
+                <div class="image-preview-box" id="tree-image-preview-box">
+                  <img id="tree-image-preview" src="https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=400&q=80" alt="Tree Preview">
+                </div>
+                <div class="image-upload-actions">
+                  <input type="file" id="tree-image-file-input" accept="image/*" style="display: none;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-trigger-upload">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="form_btn_upload">Upload Photo</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-open-camera">
+                    <i class="fa-solid fa-camera"></i> <span data-i18n="form_btn_camera">Take Snapshot</span>
+                  </button>
+                  <input type="url" class="form-control" id="tree-image-url-input" placeholder="Or enter image URL (හෝ Image URL එකක් ඇතුලත් කරන්න)">
+                </div>
+              </div>
+            </div>
+
+            <!-- Common Name -->
+            <div class="form-group">
+              <label class="form-label" for="tree-common-name" data-i18n="form_common_name">Common / Sinhala Name *</label>
+              <input type="text" class="form-control" id="tree-common-name" required placeholder="e.g. Na Tree (නා ගස)">
+            </div>
+
+            <!-- Scientific / Botanical Name -->
+            <div class="form-group">
+              <label class="form-label" for="tree-scientific-name" data-i18n="form_sci_name">Scientific Botanical Name *</label>
+              <input type="text" class="form-control" id="tree-scientific-name" required placeholder="e.g. Mesua ferrea">
+            </div>
+
+            <!-- Tag ID -->
+            <div class="form-group">
+              <label class="form-label" for="tree-tag-id" data-i18n="form_tag_id">Campus Tag ID *</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="text" class="form-control" id="tree-tag-id" required placeholder="SUSL-AGR-045">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-generate-tag" title="Auto Generate Tag">Auto</button>
+              </div>
+            </div>
+
+            <!-- Campus Zone -->
+            <div class="form-group">
+              <label class="form-label" for="tree-zone" data-i18n="form_zone">Faculty / Campus Zone *</label>
+              <select class="form-control" id="tree-zone" required>
+                <option value="Faculty of Agricultural Sciences">Faculty of Agricultural Sciences</option>
+                <option value="Faculty of Applied Sciences">Faculty of Applied Sciences</option>
+                <option value="Faculty of Geomatics">Faculty of Geomatics</option>
+                <option value="Faculty of Technology">Faculty of Technology</option>
+                <option value="Faculty of Management Studies">Faculty of Management Studies</option>
+                <option value="Faculty of Social Sciences &amp; Languages">Faculty of Social Sciences &amp; Languages</option>
+                <option value="Faculty of Medicine">Faculty of Medicine</option>
+                <option value="Faculty of Computing">Faculty of Computing</option>
+                <option value="Main Administration &amp; Heritage Lawn">Main Administration &amp; Heritage Lawn</option>
+                <option value="Riverine &amp; Eco Trail">Riverine &amp; Eco Trail</option>
+              </select>
+            </div>
+
+            <!-- Health Status -->
+            <div class="form-group">
+              <label class="form-label" for="tree-health-status" data-i18n="form_health">Health Condition *</label>
+              <select class="form-control" id="tree-health-status" required>
+                <option value="Thriving">Thriving (ඉතා සරු)</option>
+                <option value="Healthy" selected>Healthy (නිරෝගී)</option>
+                <option value="Needs Care">Needs Care (අවධානය අවශ්‍ය)</option>
+                <option value="Critical">Critical (අවදානම් / රෝගී)</option>
+              </select>
+            </div>
+
+            <!-- Plant Category -->
+            <div class="form-group">
+              <label class="form-label" for="tree-category" data-i18n="form_category">Plant Category</label>
+              <input type="text" class="form-control" id="tree-category" placeholder="Endemic, Medicinal, Fruit, Shade, etc.">
+            </div>
+
+            <!-- Height & DBH -->
+            <div class="form-group">
+              <label class="form-label" for="tree-height" data-i18n="form_height">Height in Meters</label>
+              <input type="number" step="0.1" class="form-control" id="tree-height" placeholder="e.g. 5.5">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="tree-dbh" data-i18n="form_dbh">Trunk DBH in cm</label>
+              <input type="number" step="1" class="form-control" id="tree-dbh" placeholder="e.g. 28">
+            </div>
+
+            <!-- Planted Date & Caretaker -->
+            <div class="form-group">
+              <label class="form-label" for="tree-planted-date" data-i18n="form_planted_date">Planted Date</label>
+              <input type="date" class="form-control" id="tree-planted-date">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="tree-caretaker" data-i18n="form_caretaker">Caretaker / Society</label>
+              <input type="text" class="form-control" id="tree-caretaker" placeholder="e.g. Agronomy Club, Batch '25, etc.">
+            </div>
+
+            <!-- Interactive GPS Map Coordinates -->
+            <div class="form-group col-span-2">
+              <label class="form-label" data-i18n="form_gps">GPS Coordinates (Latitude &amp; Longitude) *</label>
+              <div class="location-picker-group">
+                <input type="number" step="any" class="form-control" id="tree-lat" required placeholder="Latitude (e.g. 6.7148)">
+                <input type="number" step="any" class="form-control" id="tree-lng" required placeholder="Longitude (e.g. 80.7872)">
+                <button type="button" class="btn btn-secondary" id="btn-pick-on-map" title="Drop Pin on Interactive Map">
+                  <i class="fa-solid fa-map-pin"></i> <span data-i18n="form_btn_pick">Pick on Map</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-gps-current" title="Get Real GPS Location">
+                  <i class="fa-solid fa-location-crosshairs"></i> <span data-i18n="form_btn_gps">GPS</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Watering Schedule -->
+            <div class="form-group">
+              <label class="form-label" for="tree-watering" data-i18n="form_watering">Watering Schedule</label>
+              <input type="text" class="form-control" id="tree-watering" placeholder="Daily, Weekly, Twice a week...">
+            </div>
+
+            <!-- Ecological Notes -->
+            <div class="form-group col-span-2">
+              <label class="form-label" for="tree-notes" data-i18n="form_notes">Ecological &amp; Monitoring Notes</label>
+              <textarea class="form-control" id="tree-notes" rows="3" placeholder="Medicinal value, observations, pests, or notes..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal="modal-tree-form" data-i18n="form_btn_cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-tree">
+            <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="form_btn_save">Save Record</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Tree Details View Modal -->
+  <div class="modal-overlay" id="modal-tree-details" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="details-modal-title">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Tree Profile &amp; Ecological Details</span>
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="modal-tree-details">&times;</button>
+      </div>
+
+      <div class="modal-body" id="details-modal-body">
+        <!-- Rendered dynamically via app.js -->
+      </div>
+
+      <div class="modal-footer" id="details-modal-footer">
+        <!-- Actions: Show QR Badge, Edit, Delete, Google Maps -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Printable QR Code Tree Badge Modal -->
+  <div class="modal-overlay" id="modal-qr-badge" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="qr_badge_title">SUSL Tree Tag Badge</span>
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="modal-qr-badge">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="qr-badge-preview-container">
+          <div class="tree-qr-badge" id="printable-tree-badge">
+            <div class="badge-uni-header">
+              <img src="assets/logo-icon.png" alt="SUSL Digital Eco Manaya Logo" style="width: 46px; height: 46px; object-fit: contain; border-radius: 50%; border: 2px solid #047857; background: #ffffff; padding: 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+              <div style="display: flex; flex-direction: column; text-align: left;">
+                <span class="badge-uni-title">Sabaragamuwa University of Sri Lanka</span>
+                <span style="font-size: 0.65rem; color: #047857; font-weight: 700;">DIGITAL ECO MANAYA</span>
+              </div>
+            </div>
+            <div class="badge-tag-id" id="badge-display-tag">SUSL-ECO-001</div>
+            <h4 class="badge-tree-name" id="badge-display-name">Na Tree (නා ගස)</h4>
+            <div class="badge-tree-sci" id="badge-display-sci">Mesua ferrea</div>
+            
+            <div class="badge-qr-render" id="badge-qr-render">
+              <!-- QRCode rendered here -->
+            </div>
+
+            <div class="badge-tree-meta">
+              <span id="badge-display-zone"><i class="fa-solid fa-location-dot"></i> Faculty of Agricultural Sciences</span>
+              <span id="badge-display-caretaker"><i class="fa-solid fa-user-shield"></i> Caretaker: Nature Society</span>
+              <span><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="qr_scan_notice">Scan to view tree health &amp; ecological records</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-qr-badge" data-i18n="form_btn_cancel">Close</button>
+        <button type="button" class="btn btn-primary" id="btn-print-badge">
+          <i class="fa-solid fa-print"></i> <span data-i18n="btn_print_badge">Print Badge</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Live Camera Capture Modal -->
+  <div class="modal-overlay" id="modal-camera" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="fa-solid fa-camera"></i>
+          <span data-i18n="form_btn_camera">Take Snapshot</span>
+        </h3>
+        <button type="button" class="modal-close" id="btn-close-camera">&times;</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+        <video id="camera-video-stream" autoplay playsinline style="width: 100%; border-radius: var(--radius-md); background: #000; height: 300px; object-fit: cover;"></video>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-camera" data-i18n="form_btn_cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-capture-camera">
+          <i class="fa-solid fa-camera-retro"></i> <span data-i18n="form_btn_camera">Capture Photo</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ==================== Site Footer ==================== -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.75rem;">
+          <img src="assets/logo-icon.png" alt="Digital Eco Manaya Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 50%; border: 2px solid var(--primary-500); background: #ffffff; padding: 2px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+          <h4 style="margin-bottom: 0;">DIGITAL ECO <span>MANAYA</span></h4>
+        </div>
+        <p>
+          An academic initiative for Sabaragamuwa University of Sri Lanka (SUSL). Dedicated to biodiversity mapping, flora conservation, and sustainable campus microclimate stewardship.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h5>Quick Navigation</h5>
+        <ul class="footer-links">
+          <li><a href="#home-section" data-i18n="nav_home">Home</a></li>
+          <li><a href="#about-section" data-i18n="nav_about">About Our Project</a></li>
+          <li><a href="#objectives-section" data-i18n="nav_objectives">Project Objectives</a></li>
+          <li><a href="#map-section" data-i18n="nav_map">Tree Monitoring</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>University Faculties</h5>
+        <ul class="footer-links">
+          <li><a href="#map-section">Agricultural Sciences</a></li>
+          <li><a href="#map-section">Applied Sciences</a></li>
+          <li><a href="#map-section">Faculty of Geomatics</a></li>
+          <li><a href="#map-section">Faculty of Technology</a></li>
+          <li><a href="#map-section">Management Studies</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>
+        &copy; 2026 <strong>DIGITAL ECO MANAYA</strong>. Sabaragamuwa University of Sri Lanka. All rights reserved.
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <span>Sri Lanka</span>
+        <span>•</span>
+        <span>Measure • Manage • Sustain</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== External Script Dependencies ==================== -->
+  <!-- Leaflet.js -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Application Modules -->
+  <script src="js/translations.js"></script>
+  <script src="js/sampleData.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
