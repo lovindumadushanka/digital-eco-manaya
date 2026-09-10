@@ -2644,13 +2644,16 @@ body.dark-theme .footer-col h5 {
   }
   .modal-overlay {
     padding: 0;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .modal-card {
-    max-height: 100dvh;
-    height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
     border-radius: 0;
     border: none;
+    margin: 0;
     padding-top: max(1rem, env(safe-area-inset-top));
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
@@ -2664,6 +2667,8 @@ body.dark-theme .footer-col h5 {
     padding: 1rem;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .details-specs-grid {
     grid-template-columns: 1fr 1fr;
