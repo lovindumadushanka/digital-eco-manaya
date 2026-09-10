@@ -2641,7 +2641,14 @@ body.dark-theme .footer-col h5 {
     flex: 1 1 45%;
   }
   .modal-overlay {
-    padding: 0.5rem;
+    padding: 0;
+    align-items: flex-start;
+  }
+  .modal-card {
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
   }
   .modal-header, .modal-footer {
     padding: 1rem;
