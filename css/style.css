@@ -2624,6 +2624,7 @@ body.dark-theme .footer-col h5 {
   }
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 0.85rem;
   }
   .form-group.col-span-2 {
     grid-column: span 1;
@@ -2631,6 +2632,22 @@ body.dark-theme .footer-col h5 {
   .image-upload-wrapper {
     flex-direction: column;
     align-items: center;
+  }
+  .location-picker-group {
+    flex-wrap: wrap;
+  }
+  .location-picker-group input,
+  .location-picker-group button {
+    flex: 1 1 45%;
+  }
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  .modal-header, .modal-footer {
+    padding: 1rem;
+  }
+  .modal-body {
+    padding: 1rem;
   }
   .details-specs-grid {
     grid-template-columns: 1fr 1fr;
