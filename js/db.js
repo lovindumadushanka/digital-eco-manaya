@@ -1,94 +1,67 @@
-// db.js - IndexedDB Persistent Storage & Data Management Engine for DIGITAL ECO MANAYA
-
-const DB_NAME = "DigitalEcoManayaDB_v2";
-const DB_VERSION = 1;
-const STORE_NAME = "trees";
+// db.js - Firebase Realtime Database Engine for DIGITAL ECO MANAYA
 
 class TreeDatabase {
   constructor() {
-    this.db = null;
-    this.initPromise = this.init();
-  }
+    this.firebaseConfig = {
+      apiKey: "AIzaSyB5Yj8ofZISYI-hWezwRcIN34ALBnCrsiE",
+      authDomain: "digital-eco-manaya.firebaseapp.com",
+      databaseURL: "https://digital-eco-manaya-default-rtdb.firebaseio.com",
+      projectId: "digital-eco-manaya",
+      storageBucket: "digital-eco-manaya.firebasestorage.app",
+      messagingSenderId: "652892678519",
+      appId: "1:652892678519:web:828ee44a97b0a4a9bad972"
+    };
 
-  // Initialize IndexedDB with versioning
-  init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
-          store.createIndex("tagId", "tagId", { unique: true });
-          store.createIndex("zone", "zone", { unique: false });
-          store.createIndex("healthStatus", "healthStatus", { unique: false });
-          store.createIndex("commonName", "commonName", { unique: false });
-        }
-      };
-
-      request.onsuccess = async (event) => {
-        this.db = event.target.result;
-        // Check if database is empty; if so, populate with default INITIAL_CAMPUS_TREES
-        const count = await this.countTrees();
-        if (count === 0 && typeof INITIAL_CAMPUS_TREES !== "undefined") {
-          await this.bulkInsert(INITIAL_CAMPUS_TREES);
-        }
-        resolve(this.db);
-      };
-
-      request.onerror = (event) => {
-        console.error("IndexedDB error:", event.target.error);
-        reject(event.target.error);
-      };
-    });
-  }
-
-  async ensureDB() {
-    if (!this.db) {
-      await this.initPromise;
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(this.firebaseConfig);
     }
-    return this.db;
+    this.db = firebase.database();
+    this.treesRef = this.db.ref('trees');
+
+    this.cachedTrees = [];
+    this.isFirstLoad = true;
+    this.initPromise = this.initListener();
   }
 
-  // Count total trees
-  async countTrees() {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.count();
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+  initListener() {
+    return new Promise((resolve) => {
+      this.treesRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        this.cachedTrees = [];
+        
+        if (data) {
+          Object.keys(data).forEach(key => {
+            this.cachedTrees.push(data[key]);
+          });
+        } else if (this.isFirstLoad && typeof INITIAL_CAMPUS_TREES !== "undefined") {
+          // Auto-seed database if completely empty
+          this.bulkInsert(INITIAL_CAMPUS_TREES);
+        }
+        
+        this.isFirstLoad = false;
+        
+        // Broadcast change event to refresh UI on ALL devices instantly
+        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "sync", count: this.cachedTrees.length } }));
+        resolve(this.cachedTrees);
+      });
     });
   }
 
   // Get all trees
   async getAllTrees() {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
+    await this.initPromise;
+    return this.cachedTrees;
   }
 
   // Get single tree by ID
   async getTreeById(id) {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
+    await this.initPromise;
+    return this.cachedTrees.find(t => t.id === id) || null;
   }
 
   // Add new tree
   async addTree(treeData) {
-    const db = await this.ensureDB();
     if (!treeData.id) {
       treeData.id = "tree-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
     }
@@ -99,89 +72,49 @@ class TreeDatabase {
       treeData.carbonOffsetKg = this.estimateCarbon(treeData.height, treeData.dbh);
     }
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.add(treeData);
-      req.onsuccess = () => {
-        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "add", tree: treeData } }));
-        resolve(treeData);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    // Set to Firebase (this will automatically trigger onValue and update UI)
+    await this.treesRef.child(treeData.id).set(treeData);
+    return treeData;
   }
 
   // Update existing tree
   async updateTree(treeData) {
-    const db = await this.ensureDB();
     if (!treeData.carbonOffsetKg) {
       treeData.carbonOffsetKg = this.estimateCarbon(treeData.height, treeData.dbh);
     }
     treeData.updatedAt = new Date().toISOString();
 
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.put(treeData);
-      req.onsuccess = () => {
-        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "update", tree: treeData } }));
-        resolve(treeData);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    await this.treesRef.child(treeData.id).set(treeData);
+    return treeData;
   }
 
   // Delete tree by ID
   async deleteTree(id) {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.delete(id);
-      req.onsuccess = () => {
-        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "delete", id } }));
-        resolve(true);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    await this.treesRef.child(id).remove();
+    return true;
   }
 
   // Bulk insert array of trees
   async bulkInsert(trees) {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      trees.forEach((t) => store.put(t));
-      tx.oncomplete = () => {
-        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "bulk" } }));
-        resolve(true);
-      };
-      tx.onerror = () => reject(tx.error);
+    const updates = {};
+    trees.forEach((t) => {
+      if (!t.id) t.id = "tree-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+      updates[t.id] = t;
     });
+    await this.treesRef.update(updates);
+    return true;
   }
 
   // Reset database back to default sample records
   async resetToSample() {
-    const db = await this.ensureDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME], "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const clearReq = store.clear();
-      clearReq.onsuccess = () => {
-        if (typeof INITIAL_CAMPUS_TREES !== "undefined") {
-          INITIAL_CAMPUS_TREES.forEach((t) => store.add(t));
-        }
-      };
-      tx.oncomplete = () => {
-        window.dispatchEvent(new CustomEvent("flora:data-changed", { detail: { action: "reset" } }));
-        resolve(true);
-      };
-      tx.onerror = () => reject(tx.error);
-    });
+    await this.treesRef.remove();
+    if (typeof INITIAL_CAMPUS_TREES !== "undefined") {
+      await this.bulkInsert(INITIAL_CAMPUS_TREES);
+    }
+    return true;
   }
 
-  // Carbon absorption estimation formula based on forestry allometrics
+  // Carbon absorption estimation formula
   estimateCarbon(heightM = 5, dbhCm = 25) {
     const h = parseFloat(heightM) || 5;
     const d = parseFloat(dbhCm) || 20;
@@ -206,36 +139,17 @@ class TreeDatabase {
     if (!trees.length) return;
 
     const headers = [
-      "Tag ID",
-      "Common Name",
-      "Scientific Name",
-      "Faculty / Zone",
-      "Health Status",
-      "Height (m)",
-      "Trunk DBH (cm)",
-      "Planted Date",
-      "Caretaker",
-      "Latitude",
-      "Longitude",
-      "Watering Schedule",
-      "Carbon Offset (kg)",
-      "Notes"
+      "Tag ID", "Common Name", "Scientific Name", "Faculty / Zone", "Health Status",
+      "Height (m)", "Trunk DBH (cm)", "Planted Date", "Caretaker", "Latitude", "Longitude",
+      "Watering Schedule", "Carbon Offset (kg)", "Notes"
     ];
 
     const rows = trees.map((t) => [
-      `"${t.tagId || ""}"`,
-      `"${(t.commonName || "").replace(/"/g, '""')}"`,
-      `"${(t.scientificName || "").replace(/"/g, '""')}"`,
-      `"${(t.zone || "").replace(/"/g, '""')}"`,
-      `"${t.healthStatus || ""}"`,
-      t.height || "",
-      t.dbh || "",
-      `"${t.plantedDate || ""}"`,
-      `"${(t.caretaker || "").replace(/"/g, '""')}"`,
-      t.lat || "",
-      t.lng || "",
-      `"${(t.wateringSchedule || "").replace(/"/g, '""')}"`,
-      t.carbonOffsetKg || "",
+      `"${t.tagId || ""}"`, `"${(t.commonName || "").replace(/"/g, '""')}"`,
+      `"${(t.scientificName || "").replace(/"/g, '""')}"`, `"${(t.zone || "").replace(/"/g, '""')}"`,
+      `"${t.healthStatus || ""}"`, t.height || "", t.dbh || "", `"${t.plantedDate || ""}"`,
+      `"${(t.caretaker || "").replace(/"/g, '""')}"`, t.lat || "", t.lng || "",
+      `"${(t.wateringSchedule || "").replace(/"/g, '""')}"`, t.carbonOffsetKg || "",
       `"${(t.notes || "").replace(/"/g, '""')}"`
     ]);
 
