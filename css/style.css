@@ -2116,6 +2116,13 @@ body.dark-theme .catalog-badge {
 }
 
 /* Forms */
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
