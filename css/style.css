@@ -2101,6 +2101,8 @@ body.dark-theme .catalog-badge {
 .modal-body {
   padding: 1.75rem;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -2649,12 +2651,19 @@ body.dark-theme .footer-col h5 {
     height: 100dvh;
     border-radius: 0;
     border: none;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
-  .modal-header, .modal-footer {
+  .modal-header {
+    padding: 1rem;
+  }
+  .modal-footer {
     padding: 1rem;
   }
   .modal-body {
     padding: 1rem;
+    flex: 1;
+    min-height: 0;
   }
   .details-specs-grid {
     grid-template-columns: 1fr 1fr;
