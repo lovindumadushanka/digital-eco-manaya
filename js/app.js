@@ -807,12 +807,36 @@ class FloraCampusApp {
   // Modal helpers
   openModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.classList.add("active");
+    if (modal) {
+      modal.classList.add("active");
+      document.body.style.overflow = "hidden";
+      // Prevent iOS body scroll-through: lock touch events on the overlay itself
+      // (but allow scrolling inside .modal-body)
+      modal.addEventListener("touchmove", this._preventOverlayScroll, { passive: false });
+    }
   }
 
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.classList.remove("active");
+    if (modal) {
+      modal.classList.remove("active");
+      modal.removeEventListener("touchmove", this._preventOverlayScroll);
+      // Only restore body scroll if no other modals are active
+      const anyActive = document.querySelector(".modal-overlay.active");
+      if (!anyActive) {
+        document.body.style.overflow = "";
+      }
+    }
+  }
+
+  // Prevent touch-scroll from leaking to body when touching outside .modal-body
+  _preventOverlayScroll(e) {
+    const modalBody = e.currentTarget.querySelector(".modal-body");
+    if (modalBody && modalBody.contains(e.target)) {
+      // Allow scroll inside modal-body - don't prevent
+      return;
+    }
+    e.preventDefault();
   }
 
   // Theme Toggler
