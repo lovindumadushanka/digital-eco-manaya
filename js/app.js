@@ -6,7 +6,7 @@ class FloraCampusApp {
     this.filteredTrees = [];
     this.currentView = "split"; // "split" | "map" | "grid" | "analytics"
     this.currentTheme = localStorage.getItem("flora_theme") || "light";
-    this.currentLang = localStorage.getItem("flora_lang") || "si";
+    this.currentLang = localStorage.getItem("flora_lang") || "en";
     this.cameraStream = null;
     this.currentImageBase64 = null;
     this.qrInstance = null;
