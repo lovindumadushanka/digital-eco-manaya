@@ -116,6 +116,24 @@ class TreeDatabase {
     }
     treeData.updatedAt = new Date().toISOString();
 
+    // Fetch old tree to preserve history
+    const snap = await this.treesRef.child(treeData.id).once("value");
+    const oldTree = snap.val();
+
+    // Preserve and append to history array
+    treeData.history = (oldTree && oldTree.history) ? oldTree.history : [];
+    
+    // Only add a history record if this is an explicit update, not a new initial creation
+    // But since updateTree is usually called on edits, we always append.
+    treeData.history.push({
+      updatedAt: treeData.updatedAt,
+      updatedBy: treeData.submittedBy || treeData.caretaker || "Admin",
+      healthStatus: treeData.healthStatus || "",
+      height: treeData.height || "",
+      dbh: treeData.dbh || "",
+      notes: treeData.notes || ""
+    });
+
     await this.treesRef.child(treeData.id).set(treeData);
     return treeData;
   }

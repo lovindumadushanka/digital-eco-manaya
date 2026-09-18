@@ -118,6 +118,10 @@
           <i class="fa-solid fa-ellipsis-vertical"></i>
         </button>
         <div class="dropdown-menu" id="data-dropdown-menu">
+          <a href="admin.html" class="dropdown-item" target="_blank" style="text-decoration:none; color:#a78bfa; font-weight:600;">
+            <i class="fa-solid fa-shield-halved"></i> <span>Admin Control Panel</span>
+          </a>
+          <div class="dropdown-divider"></div>
           <button type="button" class="dropdown-item" id="action-website-qr">
             <i class="fa-solid fa-qrcode"></i> <span data-i18n="website_qr_btn">Website QR Code</span>
           </button>
@@ -145,6 +149,11 @@
         <i class="fa-solid fa-qrcode"></i>
       </button>
 
+      <!-- Direct Admin Portal Header Link -->
+      <a href="admin.html" class="btn btn-secondary btn-icon" id="btn-direct-admin" title="Admin Control Panel / ඇඩ්මින් පැනලය" aria-label="Admin Portal" target="_blank" style="text-decoration:none;">
+        <i class="fa-solid fa-shield-halved" style="color:#a78bfa;"></i>
+      </a>
+
       <!-- Auth: Login Button (shown when logged out) -->
       <button type="button" class="btn btn-auth-login" id="btn-auth-login" title="ගිණුමට ඇතුළු වන්න">
         <i class="fa-solid fa-right-to-bracket"></i>
@@ -166,7 +175,7 @@
       </button>
 
       <!-- Auth: Logout Button (shown when logged in) -->
-      <button type="button" class="btn btn-auth-logout" id="btn-auth-logout" style="display:none;" title="ออกจาก ගිණුම">
+      <button type="button" class="btn btn-auth-logout" id="btn-auth-logout" style="display:none;" title="Logout">
         <i class="fa-solid fa-right-from-bracket"></i>
       </button>
 
@@ -600,6 +609,16 @@
               <canvas id="chart-zone-distribution"></canvas>
             </div>
           </div>
+          
+          <!-- Overall Plant Growth Trend -->
+          <div class="chart-card" style="grid-column: 1 / -1;">
+            <div class="chart-card-header">
+              <h3 class="chart-title"><i class="fa-solid fa-arrow-trend-up" style="color: var(--primary-600); margin-right: 0.5rem;"></i> Overall Plant Growth Trend (Average Height &amp; DBH)</h3>
+            </div>
+            <div class="chart-wrapper" style="height: 350px;">
+              <canvas id="chart-overall-growth"></canvas>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -696,8 +715,16 @@
 
             <!-- Plant Category -->
             <div class="form-group">
-              <label class="form-label" for="tree-category" data-i18n="form_category">Plant Category</label>
-              <input type="text" class="form-control" id="tree-category" placeholder="Endemic, Medicinal, Fruit, Shade, etc.">
+              <label class="form-label" for="tree-category">Plant Category (ශාක කාණ්ඩය)</label>
+              <select class="form-control" id="tree-category">
+                <option value="" disabled selected>Select Category (කාණ්ඩය තෝරන්න)</option>
+                <option value="Endemic (ආවේණික)">Endemic (ආවේණික)</option>
+                <option value="Medicinal (ඖෂධීය)">Medicinal (ඖෂධීය)</option>
+                <option value="Fruit (පලතුරු)">Fruit (පලතුරු)</option>
+                <option value="Timber (දැවමය)">Timber (දැවමය)</option>
+                <option value="Shade/Ornamental (සෙවන/විසිතුරු)">Shade / Ornamental (සෙවන/විසිතුරු)</option>
+                <option value="Other">Other (වෙනත්)</option>
+              </select>
             </div>
 
             <!-- Height & DBH -->
@@ -708,7 +735,7 @@
 
             <div class="form-group">
               <label class="form-label" for="tree-dbh" data-i18n="form_dbh">Trunk DBH in cm</label>
-              <input type="number" step="1" class="form-control" id="tree-dbh" placeholder="e.g. 28">
+              <input type="number" step="any" class="form-control" id="tree-dbh" placeholder="e.g. 28.5">
             </div>
 
             <!-- Planted Date & Caretaker -->
@@ -718,8 +745,13 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="tree-caretaker" data-i18n="form_caretaker">Caretaker / Society</label>
-              <input type="text" class="form-control" id="tree-caretaker" placeholder="e.g. Agronomy Club, Batch '25, etc.">
+              <label class="form-label" for="tree-caretaker">Planter (පැලය සිටුවූ පුද්ගලයා / කණ්ඩායම)</label>
+              <input type="text" class="form-control" id="tree-caretaker" placeholder="e.g. Batch '25, Agronomy Club, etc.">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="tree-lecturer-email">අධීක්ෂක ලෙක්චර්ගේ ඊමේල් (Lecturer Email)</label>
+              <input type="email" class="form-control" id="tree-lecturer-email" placeholder="lecturer@sab.ac.lk">
             </div>
 
             <!-- Interactive GPS Map Coordinates -->
@@ -739,8 +771,16 @@
 
             <!-- Watering Schedule -->
             <div class="form-group">
-              <label class="form-label" for="tree-watering" data-i18n="form_watering">Watering Schedule</label>
-              <input type="text" class="form-control" id="tree-watering" placeholder="Daily, Weekly, Twice a week...">
+              <label class="form-label" for="tree-watering">Watering Schedule (ජලය යෙදීම)</label>
+              <select class="form-control" id="tree-watering">
+                <option value="" disabled selected>Select Schedule (කාලසටහන තෝරන්න)</option>
+                <option value="Daily (දිනපතා)">Daily (දිනපතා)</option>
+                <option value="Twice a Week (සතියට දෙවරක්)">Twice a Week (සතියට දෙවරක්)</option>
+                <option value="Weekly (සතිපතා)">Weekly (සතිපතා)</option>
+                <option value="Monthly (මාසිකව)">Monthly (මාසිකව)</option>
+                <option value="Seasonal (කාලීන / වැසි මත)">Seasonal (කාලීන / වැසි මත)</option>
+                <option value="None">None (අවශ්‍ය නොවේ)</option>
+              </select>
             </div>
 
             <!-- Ecological Notes -->
@@ -1030,6 +1070,15 @@
           <i class="fa-solid fa-shield-halved"></i>
           ඔබ ඇතුලත් කරන දත්ත admin අනුමැතියෙන් පසු පමණක් site-ේ show වේ.
         </p>
+
+        <!-- Direct Admin Portal Access Banner -->
+        <div class="auth-admin-switch" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
+          <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.45rem;">ඔබ Administrator වරයෙක්ද?</p>
+          <a href="admin.html" target="_blank" class="btn btn-outline-admin" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-decoration: none; color: #a78bfa; background: rgba(124, 58, 237, 0.12); border: 1px solid rgba(124, 58, 237, 0.3); transition: all 0.2s;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Admin Control Panel වෙත පිවිසෙන්න &rarr;</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -1054,6 +1103,7 @@
           <li><a href="#about-section" data-i18n="nav_about">About Our Project</a></li>
           <li><a href="#objectives-section" data-i18n="nav_objectives">Project Objectives</a></li>
           <li><a href="#map-section" data-i18n="nav_map">Tree Monitoring</a></li>
+          <li><a href="admin.html" target="_blank" style="color:#a78bfa; font-weight:600;"><i class="fa-solid fa-shield-halved"></i> Admin Control Panel</a></li>
           <li><a href="javascript:void(0)" id="footer-website-qr-link"><i class="fa-solid fa-qrcode"></i> <span data-i18n="website_qr_title">Website QR Code</span></a></li>
         </ul>
       </div>
@@ -1101,14 +1151,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <!-- Application Modules -->
-  <script src="js/translations.js?v=firebase"></script>
-  <script src="js/sampleData.js?v=firebase"></script>
-  <script src="js/db.js?v=auth2"></script>
-  <script src="js/auth.js?v=1"></script>
-  <script src="js/email.js?v=1"></script>
-  <script src="js/map.js?v=firebase"></script>
-  <script src="js/charts.js?v=firebase"></script>
-  <script src="js/app.js?v=auth2"></script>
+  <script src="js/translations.js?v=v3"></script>
+  <script src="js/sampleData.js?v=v3"></script>
+  <script src="js/db.js?v=v3"></script>
+  <script src="js/auth.js?v=v3"></script>
+  <script src="js/email.js?v=v3"></script>
+  <script src="js/map.js?v=v3"></script>
+  <script src="js/charts.js?v=v3"></script>
+  <script src="js/app.js?v=v3"></script>
 
   <!-- Password visibility toggle (runs after all scripts) -->
   <script>

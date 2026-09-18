@@ -20,9 +20,9 @@
 // ════════════════════════════════════════════════════════════
 
 const EMAILJS_CONFIG = {
-  SERVICE_ID:  "YOUR_SERVICE_ID",   // e.g. "service_abc123"
-  TEMPLATE_ID: "YOUR_TEMPLATE_ID",  // e.g. "template_xyz789"
-  PUBLIC_KEY:  "YOUR_PUBLIC_KEY",   // e.g. "abcDEF123..."
+  SERVICE_ID:  "service_owg8uh9",
+  TEMPLATE_ID: "template_77ctc9g",
+  PUBLIC_KEY:  "NzG3WPXgs3MIJkw6L",
 };
 
 class EmailNotifier {
@@ -36,13 +36,16 @@ class EmailNotifier {
       console.warn("EmailJS SDK not loaded. Email notifications disabled.");
       return;
     }
-    if (EMAILJS_CONFIG.PUBLIC_KEY === "YOUR_PUBLIC_KEY") {
-      console.warn("EmailJS not configured. Skipping email init.");
-      return;
+    try {
+      if (typeof emailjs.init === "function") {
+        emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
+      }
+      this._initialized = true;
+      console.log("✉️ EmailJS initialized successfully with Service ID:", EMAILJS_CONFIG.SERVICE_ID);
+    } catch (e) {
+      console.warn("EmailJS init exception, fallback to direct send:", e);
+      this._initialized = true;
     }
-    emailjs.init({ publicKey: EMAILJS_CONFIG.PUBLIC_KEY });
-    this._initialized = true;
-    console.log("✉️ EmailJS initialized successfully.");
   }
 
   /**
@@ -50,21 +53,29 @@ class EmailNotifier {
    * @param {string} userEmail   - Recipient email address
    * @param {string} userName    - Recipient display name
    * @param {Object} treeData    - Tree record that was submitted
+   * @param {string} [lecturerEmail] - Optional lecturer email to CC
    */
-  async sendSubmissionConfirmation(userEmail, userName, treeData) {
-    if (!this._initialized) {
-      console.warn("EmailJS not initialized — skipping email send.");
-      return { ok: false, reason: "not_initialized" };
+  async sendSubmissionConfirmation(userEmail, userName, treeData, lecturerEmail) {
+    if (!this._initialized && typeof emailjs === "undefined") {
+      console.warn("EmailJS not available — skipping email send.");
+      return { ok: false, reason: "not_available" };
     }
 
-    const submittedAt = new Date().toLocaleString("si-LK", {
+    const submittedAt = new Date().toLocaleString("en-LK", {
       year: "numeric", month: "long", day: "numeric",
       hour: "2-digit", minute: "2-digit"
     });
 
     const templateParams = {
-      to_name:      userName || "Contributor",
       to_email:     userEmail,
+      email:        userEmail,
+      user_email:   userEmail,
+      to:           userEmail,
+      recipient:    userEmail,
+      reply_to:     "lovindumadushanka03@gmail.com",
+      to_name:      userName || userEmail.split("@")[0] || "Contributor",
+      name:         userName || userEmail.split("@")[0],
+      user_name:    userName || userEmail.split("@")[0],
       tree_name:    treeData.commonName    || "N/A",
       tree_sci:     treeData.scientificName || "N/A",
       tree_tag:     treeData.tagId          || "N/A",
@@ -73,15 +84,29 @@ class EmailNotifier {
       tree_height:  treeData.height ? `${treeData.height} m` : "N/A",
       tree_dbh:     treeData.dbh    ? `${treeData.dbh} cm`  : "N/A",
       submitted_at: submittedAt,
+      message:      `Tree submission received for ${treeData.commonName} (${treeData.tagId}).`
     };
 
     try {
+      console.log("✉️ Sending confirmation email to:", userEmail, "via EmailJS...");
       const response = await emailjs.send(
         EMAILJS_CONFIG.SERVICE_ID,
         EMAILJS_CONFIG.TEMPLATE_ID,
-        templateParams
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
       );
-      console.log("✉️ Confirmation email sent →", userEmail, response.status);
+      console.log("✉️ Confirmation email sent successfully! Status:", response.status, response.text);
+
+      if (lecturerEmail) {
+        console.log("✉️ Sending CC confirmation email to lecturer:", lecturerEmail);
+        const lecturerParams = { ...templateParams, to_email: lecturerEmail, to_name: "Lecturer/Supervisor" };
+        await emailjs.send(
+          EMAILJS_CONFIG.SERVICE_ID,
+          EMAILJS_CONFIG.TEMPLATE_ID,
+          lecturerParams,
+          EMAILJS_CONFIG.PUBLIC_KEY
+        );
+      }
       return { ok: true, status: response.status };
     } catch (err) {
       console.error("EmailJS send error:", err);

@@ -9,7 +9,7 @@ import os
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
 
-WEBSITE_URL = "https://lovindumadushanka.github.io/digital-eco-manaya/"
+WEBSITE_URL = "https://digital-eco-manaya.vercel.app/"
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets")
 
 def create_standalone_qr():
@@ -177,7 +177,7 @@ def create_branded_card(qr_img):
     below_qr_y += 55
 
     # URL Pill Container
-    url_text = "lovindumadushanka.github.io/digital-eco-manaya"
+    url_text = "digital-eco-manaya.vercel.app"
     pill_w = 760
     pill_h = 56
     pill_x1 = (card_w - pill_w) // 2

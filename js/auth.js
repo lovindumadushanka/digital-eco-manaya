@@ -17,7 +17,7 @@ class AuthManager {
     this.auth.onAuthStateChanged(async (user) => {
       this.currentUser = user;
       if (user) {
-        this._isAdmin = await this._checkAdminStatus(user.uid);
+        this._isAdmin = await this._checkAdminStatus(user);
       } else {
         this._isAdmin = false;
       }
@@ -31,13 +31,40 @@ class AuthManager {
   async register(email, password, displayName) {
     const credential = await this.auth.createUserWithEmailAndPassword(email, password);
     await credential.user.updateProfile({ displayName });
+    const cleanEmail = email.toLowerCase().trim();
+    const encKey = cleanEmail.replace(/\./g, ",");
+
+    // Check if user was pre-assigned as admin
+    let role = "contributor";
+    if (cleanEmail === "lovindumadushanka03@gmail.com") {
+      role = "admin";
+    } else {
+      try {
+        const adminEmailSnap = await this.db.ref(`admin_emails/${encKey}`).once("value");
+        if (adminEmailSnap.exists()) role = "admin";
+      } catch (e) {
+        console.warn("Could not check admin_emails:", e);
+      }
+    }
+
     // Save basic profile to DB
     await this.db.ref(`users/${credential.user.uid}`).set({
       email,
       displayName,
       createdAt: new Date().toISOString(),
-      role: "contributor"
+      role: role
     });
+
+    if (role === "admin") {
+      await this.db.ref(`admins/${credential.user.uid}`).set({
+        email: cleanEmail,
+        name: displayName || cleanEmail.split("@")[0],
+        role: "admin",
+        addedAt: new Date().toISOString(),
+        addedBy: "System Registration"
+      });
+    }
+
     return credential.user;
   }
 
@@ -47,14 +74,19 @@ class AuthManager {
     return credential.user;
   }
 
-  /** Logout current user */
+  /** Logout */
   async logout() {
     await this.auth.signOut();
   }
 
-  /** Get currently logged-in user (null if not logged in) */
+  /** Current logged in user */
+  getUser() {
+    return this.currentUser || this.auth.currentUser;
+  }
+
+  /** Current logged in user (alias) */
   getCurrentUser() {
-    return this.auth.currentUser;
+    return this.currentUser || this.auth.currentUser;
   }
 
   /** Check if current user is admin */
@@ -64,7 +96,7 @@ class AuthManager {
 
   /** Returns true if any user is logged in */
   isLoggedIn() {
-    return !!this.auth.currentUser;
+    return !!(this.currentUser || this.auth.currentUser);
   }
 
   /** Subscribe to auth state changes: cb(user) */
@@ -79,13 +111,42 @@ class AuthManager {
 
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
-  async _checkAdminStatus(uid) {
+  async _checkAdminStatus(user) {
+    if (!user) return false;
+    const email = (user.email || "").toLowerCase().trim();
+    if (email === "lovindumadushanka03@gmail.com") return true;
+
+    // Check admins/${uid}
     try {
-      const snap = await this.db.ref(`admins/${uid}`).once("value");
-      return snap.exists() && snap.val() === true;
+      const snap = await this.db.ref(`admins/${user.uid}`).once("value");
+      const val = snap.val();
+      if (snap.exists() && (val === true || val === "true" || val === 1 || (typeof val === "object" && val !== null))) {
+        return true;
+      }
     } catch {
-      return false;
+      // Continue to next check
     }
+
+    // Check admin_emails
+    if (email) {
+      try {
+        const encKey = email.replace(/\./g, ",");
+        const snap = await this.db.ref(`admin_emails/${encKey}`).once("value");
+        if (snap.exists()) return true;
+      } catch {
+        // Continue
+      }
+    }
+
+    // Check users/${uid}/role
+    try {
+      const snap = await this.db.ref(`users/${user.uid}/role`).once("value");
+      if (snap.val() === "admin") return true;
+    } catch {
+      // Return false
+    }
+
+    return false;
   }
 
   _notifyObservers(user) {

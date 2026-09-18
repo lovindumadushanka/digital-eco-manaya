@@ -483,6 +483,12 @@ class FloraCampusApp {
 
   // Open Add / Edit Tree Modal
   openTreeForm(treeToEdit = null) {
+    if (!authManager.isLoggedIn()) {
+      this.openAuthModal("login");
+      this.showToast("දත්ත ඇතුලත් කිරීමට හෝ වෙනස් කිරීමට කරුණාකර පළමුව Login වන්න.", "error");
+      return;
+    }
+
     const form = document.getElementById("form-tree");
     const modalTitle = document.getElementById("form-modal-title");
     const previewImg = document.getElementById("tree-image-preview");
@@ -503,6 +509,7 @@ class FloraCampusApp {
       document.getElementById("tree-dbh").value = treeToEdit.dbh || "";
       document.getElementById("tree-planted-date").value = treeToEdit.plantedDate || "";
       document.getElementById("tree-caretaker").value = treeToEdit.caretaker || "";
+      document.getElementById("tree-lecturer-email").value = treeToEdit.lecturerEmail || "";
       document.getElementById("tree-lat").value = treeToEdit.lat || "";
       document.getElementById("tree-lng").value = treeToEdit.lng || "";
       document.getElementById("tree-watering").value = treeToEdit.wateringSchedule || "";
@@ -515,6 +522,7 @@ class FloraCampusApp {
       modalTitle.innerHTML = `<i class="fa-solid fa-seedling"></i> <span>නව පැලයක් එක්කිරීම (Register Tree)</span>`;
       document.getElementById("tree-edit-id").value = "";
       this.generateAutoTag();
+      document.getElementById("tree-lecturer-email").value = "";
       
       // Default to Sabaragamuwa University campus center
       const center = campusMap.map ? campusMap.map.getCenter() : { lat: 6.7148, lng: 80.7872 };
@@ -553,12 +561,18 @@ class FloraCampusApp {
     e.preventDefault();
 
     // ── Auth guard ────────────────────────────────────────────────────────────
-    const currentUser = authManager.getCurrentUser();
+    const currentUser = authManager.getCurrentUser?.() || authManager.getUser?.() || authManager.currentUser || firebase.auth().currentUser;
     if (!currentUser) {
       this.closeModal("modal-tree-form");
       this.openAuthModal("login");
-      this.showToast("ඉදිරිපත් කිරීමට login කරන්න.", "error");
+      this.showToast("ගස් දත්ත ඇතුලත් කිරීමට කරුණාකර පළමුව Login වන්න.", "error");
       return;
+    }
+
+    const saveBtn = document.getElementById("btn-save-tree");
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<div class="spin" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> සුරකිමින් පවතී...';
     }
 
     const editId = document.getElementById("tree-edit-id").value;
@@ -572,6 +586,7 @@ class FloraCampusApp {
     const dbh = parseFloat(document.getElementById("tree-dbh").value) || null;
     const plantedDate = document.getElementById("tree-planted-date").value;
     const caretaker = document.getElementById("tree-caretaker").value.trim();
+    const lecturerEmail = document.getElementById("tree-lecturer-email").value.trim();
     const lat = parseFloat(document.getElementById("tree-lat").value);
     const lng = parseFloat(document.getElementById("tree-lng").value);
     const wateringSchedule = document.getElementById("tree-watering").value.trim();
@@ -580,6 +595,10 @@ class FloraCampusApp {
 
     if (!commonName || !scientificName || !tagId || isNaN(lat) || isNaN(lng)) {
       this.showToast("කරුණාකර අනිවාර්ය තොරතුරු සහ GPS Coordinates ඇතුලත් කරන්න.", "error");
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span data-i18n="form_btn_save">Save Record</span>';
+      }
       return;
     }
 
@@ -596,6 +615,7 @@ class FloraCampusApp {
       dbh,
       plantedDate,
       caretaker,
+      lecturerEmail,
       lat,
       lng,
       wateringSchedule,
@@ -617,15 +637,17 @@ class FloraCampusApp {
       } else {
         // New submission → goes to /pending_trees/ for admin approval
         await treeDB.addTree(treePayload);
-        this.showToast(`"${commonName}" ඉදිරිපත් කරන ලදී! Admin අනුමැතිය ලැබෙන තෙක් රැඳෙන්න.`, "success");
+        this.showToast(`"${commonName}" සාර්ථකව ඉදිරිපත් කරන ලදී! Admin අනුමැතිය ලැබෙන තෙක් රැඳෙන්න.`, "success");
 
-        // Send confirmation email to contributor
+        // Send confirmation email to contributor and lecturer
         if (emailNotifier.isReady()) {
           emailNotifier
-            .sendSubmissionConfirmation(currentUser.email, currentUser.displayName, treePayload)
+            .sendSubmissionConfirmation(currentUser.email, currentUser.displayName, treePayload, lecturerEmail)
             .then(result => {
               if (result.ok) {
-                this.showToast(`ඔබේ email (${currentUser.email}) ට copy එකක් යවන ලදී.`, "success");
+                let msg = `ඔබේ email (${currentUser.email}) ට පිටපතක් යවන ලදී.`;
+                if (lecturerEmail) msg += ` ${lecturerEmail} වෙතද කොපියක් යවන ලදී.`;
+                this.showToast(msg, "success");
               }
             });
         }
@@ -637,6 +659,11 @@ class FloraCampusApp {
     } catch (err) {
       console.error("Save tree error:", err);
       this.showToast("සුරැකීමේදී දෝෂයක් සිදු විය: " + err.message, "error");
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span data-i18n="form_btn_save">Save Record</span>';
+      }
     }
   }
 
@@ -707,24 +734,86 @@ class FloraCampusApp {
           <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Google Maps
         </a>
       </div>
+      
+      ${(tree.history && tree.history.length > 0) ? `
+      <div style="margin-top: 1.5rem; background: var(--surface-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--gray-200);">
+        <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--primary-700); margin-bottom: 0.75rem;">
+          <i class="fa-solid fa-clock-rotate-left"></i> යාවත්කාලීන ඉතිහාසය (Update History)
+        </h4>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--gray-200); color: var(--gray-600);">
+                <th style="padding: 0.5rem 0.25rem;">දිනය (Date)</th>
+                <th style="padding: 0.5rem 0.25rem;">සෞඛ්‍යය (Health)</th>
+                <th style="padding: 0.5rem 0.25rem;">උස (Height)</th>
+                <th style="padding: 0.5rem 0.25rem;">DBH</th>
+                <th style="padding: 0.5rem 0.25rem;">සිසුවා (User)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[...tree.history].sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)).map(h => `
+                <tr style="border-bottom: 1px solid var(--gray-100);">
+                  <td style="padding: 0.5rem 0.25rem;">${new Date(h.updatedAt).toLocaleDateString()}</td>
+                  <td style="padding: 0.5rem 0.25rem;">
+                    <span class="badge-pill badge-${(h.healthStatus || 'healthy').toLowerCase().replace(/\s+/g, '-')}">${h.healthStatus || '-'}</span>
+                  </td>
+                  <td style="padding: 0.5rem 0.25rem;">${h.height ? h.height + 'm' : '-'}</td>
+                  <td style="padding: 0.5rem 0.25rem;">${h.dbh ? h.dbh + 'cm' : '-'}</td>
+                  <td style="padding: 0.5rem 0.25rem; color: var(--gray-600);"><small>${(h.updatedBy || 'Unknown').split('@')[0]}</small></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 1.5rem; border-top: 1px solid var(--gray-200); padding-top: 1rem;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--primary-700); margin-bottom: 0.5rem;">
+            <i class="fa-solid fa-chart-line"></i> වර්ධන ප්‍රස්ථාරය (Plant Growth Chart)
+          </h4>
+          <div style="height: 250px; width: 100%;">
+            <canvas id="chart-tree-growth"></canvas>
+          </div>
+        </div>
+      </div>
+      ` : ''}
     `;
 
-    modalFooter.innerHTML = `
+    let actionButtons = `
       <button type="button" class="btn btn-secondary" onclick="FloraApp.openQRBadge('${tree.id}')">
         <i class="fa-solid fa-qrcode"></i> QR Badge Print
       </button>
       <button type="button" class="btn btn-secondary" onclick="FloraApp.focusOnMap('${tree.lat}', '${tree.lng}'); FloraApp.closeModal('modal-tree-details');">
         <i class="fa-solid fa-map-pin"></i> View on Map
       </button>
-      <button type="button" class="btn btn-secondary" onclick="FloraApp.editTreeFromDetails('${tree.id}')">
-        <i class="fa-solid fa-pen-to-square"></i> Edit
-      </button>
-      <button type="button" class="btn btn-secondary" style="color: var(--accent-rose);" onclick="FloraApp.confirmDeleteTree('${tree.id}')">
-        <i class="fa-solid fa-trash-can"></i> Delete
-      </button>
     `;
 
+    if (authManager.isLoggedIn()) {
+      actionButtons += `
+        <button type="button" class="btn btn-secondary" onclick="FloraApp.editTreeFromDetails('${tree.id}')">
+          <i class="fa-solid fa-pen-to-square"></i> Edit
+        </button>
+      `;
+      if (authManager.isAdmin()) {
+        actionButtons += `
+          <button type="button" class="btn btn-secondary" style="color: var(--accent-rose);" onclick="FloraApp.confirmDeleteTree('${tree.id}')">
+            <i class="fa-solid fa-trash-can"></i> Delete
+          </button>
+        `;
+      }
+    }
+
+    modalFooter.innerHTML = actionButtons;
+
     this.openModal("modal-tree-details");
+    
+    // Render individual chart if history exists
+    if (tree.history && tree.history.length > 0) {
+      setTimeout(() => {
+        if (typeof campusCharts !== 'undefined' && campusCharts.renderTreeGrowthChart) {
+          campusCharts.renderTreeGrowthChart(tree);
+        }
+      }, 300);
+    }
   }
 
   // Edit Tree from Details Modal
@@ -736,6 +825,11 @@ class FloraCampusApp {
 
   // Confirm and Delete Tree
   async confirmDeleteTree(id) {
+    if (!authManager.isAdmin()) {
+      this.showToast("පැලයේ වාර්තාව මැකීමට ඔබට අවසර නැත. (Admin access required)", "error");
+      return;
+    }
+
     const tree = await treeDB.getTreeById(id);
     if (!tree) return;
 
@@ -1100,7 +1194,13 @@ class FloraCampusApp {
       try {
         await authManager.login(email, password);
         this.closeModal("modal-auth");
-        this.showToast("සාර්ථකව login විය!", "success");
+        setTimeout(() => {
+          if (authManager.isAdmin()) {
+            this.showToast("Admin ලෙස සාර්ථකව login විය! ඉහළ 'Admin' බොත්තමෙන් Panel එක විවෘත කරන්න.", "success");
+          } else {
+            this.showToast("සාර්ථකව login විය!", "success");
+          }
+        }, 300);
       } catch (err) {
         this._showAuthError("auth-panel-login", authManager.getFriendlyError(err.code));
       } finally {

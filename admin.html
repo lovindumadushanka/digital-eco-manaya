@@ -110,6 +110,13 @@
             <div class="stat-card-label">Contributors</div>
           </div>
         </div>
+        <div class="stat-card">
+          <div class="stat-icon purple" style="background:rgba(124,58,237,0.12);color:#a78bfa;"><i class="fa-solid fa-user-shield"></i></div>
+          <div class="stat-card-text">
+            <div class="stat-card-value" id="stat-admins">–</div>
+            <div class="stat-card-label">Administrators</div>
+          </div>
+        </div>
       </div>
 
       <!-- ══ SECTION 1: Pending Trees ════════════════════════════════ -->
@@ -181,6 +188,80 @@
         </div>
       </div>
 
+      <!-- ══ SECTION 3: Admin Team Management ═════════════════════════ -->
+      <div class="admin-section-header" style="margin-top:2.5rem;">
+        <div class="admin-section-title">
+          <i class="fa-solid fa-user-shield" style="color:#a78bfa;"></i>
+          Admin Team Management
+          <span class="badge-count" style="background:rgba(124,58,237,0.15);color:#a78bfa;border-color:rgba(124,58,237,0.3);" id="admin-badge-count">0</span>
+        </div>
+        <button type="button" id="btn-open-add-admin" onclick="openAddAdminModal()" style="background:linear-gradient(135deg, var(--primary-600), var(--primary-700));color:#fff;border:none;border-radius:6px;padding:0.45rem 0.95rem;font-size:0.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.45rem;box-shadow:0 2px 10px rgba(16,185,129,0.25);transition:all 0.2s;">
+          <i class="fa-solid fa-user-plus"></i> + Add New Admin
+        </button>
+      </div>
+
+      <div class="admin-table-wrap">
+        <div class="admin-loading" id="admins-loading">
+          <div class="spin"></div> Loading admin team...
+        </div>
+        <table class="admin-table" id="admins-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Admin Name / Email</th>
+              <th>Role</th>
+              <th>Added Date</th>
+              <th>Added By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admins-table-body"></tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══ MODAL: Add New Admin ═════════════════════════════════════ -->
+  <div id="modal-add-admin" class="admin-modal" style="display:none;">
+    <div class="admin-modal-overlay" onclick="closeAddAdminModal()"></div>
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="modal-icon-wrap"><i class="fa-solid fa-user-shield"></i></div>
+          <div>
+            <h3 style="font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:700;">Add New Administrator</h3>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">නව ඇඩ්මින්වරයෙකු පත් කරන්න</p>
+          </div>
+        </div>
+        <button type="button" class="btn-modal-close" onclick="closeAddAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-add-admin" style="margin-top:1.25rem;">
+        <div class="admin-field">
+          <label class="admin-label"><i class="fa-solid fa-envelope"></i> Administrator Email Address *</label>
+          <input type="email" class="admin-input" id="new-admin-email" placeholder="example@gmail.com" required autocomplete="email">
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">
+            * ලියාපදිංචි වී ඇති හෝ අනාගතයේ ලියාපදිංචි වන ඕනෑම ඊමේල් ලිපිනයක් ඇතුළත් කළ හැක.
+          </span>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-label"><i class="fa-solid fa-id-card"></i> Administrator Name / Designation</label>
+          <input type="text" class="admin-input" id="new-admin-name" placeholder="උදා: Kasun (Faculty Rep)">
+        </div>
+
+        <div class="admin-error" id="add-admin-error" style="display:none;margin-bottom:0.75rem;"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:0.6rem;margin-top:1.25rem;">
+          <button type="button" class="btn-cancel" onclick="closeAddAdminModal()">Cancel</button>
+          <button type="submit" id="btn-submit-add-admin" style="padding:0.6rem 1.2rem;font-size:0.85rem;background:var(--primary-600);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:0.4rem;transition:all 0.2s;">
+            <i class="fa-solid fa-shield-halved"></i> Grant Admin Access
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
     </main>
   </div>
 
@@ -227,17 +308,59 @@
     });
   }
 
-  async function isAdmin(uid) {
-    try {
-      console.log("[Admin Check] Checking UID:", uid);
-      const snap = await db.ref(`admins/${uid}`).once("value");
-      const result = snap.exists() && snap.val() === true;
-      console.log("[Admin Check] Result:", result, "| Value:", snap.val());
-      return result;
-    } catch (err) {
-      console.error("[Admin Check] DB read error:", err.code, err.message);
-      return false;
+  function encodeEmailKey(email) {
+    return (email || "").toLowerCase().trim().replace(/\./g, ",");
+  }
+
+  function decodeEmailKey(key) {
+    return (key || "").replace(/,/g, ".");
+  }
+
+  const SUPER_ADMIN_EMAILS = [
+    "lovindumadushanka03@gmail.com"
+  ];
+
+  async function isAdmin(user) {
+    if (!user) return false;
+    const uid = user.uid;
+    const email = (user.email || "").toLowerCase().trim();
+
+    // 1. Check Super Admin Emails list
+    if (email && SUPER_ADMIN_EMAILS.includes(email)) {
+      console.log("[Admin Check] Super admin email matched:", email);
+      return true;
     }
+
+    // 2. Check Database admins/${uid}
+    try {
+      const snap = await db.ref(`admins/${uid}`).once("value");
+      const val = snap.val();
+      if (snap.exists() && (val === true || val === "true" || val === 1 || (typeof val === "object" && val !== null))) {
+        return true;
+      }
+    } catch (err) {
+      console.warn("[Admin Check] DB admins check error:", err.message);
+    }
+
+    // 3. Check Database admin_emails/${encodedEmail}
+    if (email) {
+      try {
+        const snap = await db.ref(`admin_emails/${encodeEmailKey(email)}`).once("value");
+        if (snap.exists()) return true;
+      } catch (err) {
+        console.warn("[Admin Check] DB admin_emails check error:", err.message);
+      }
+    }
+
+    // 4. Check users/${uid}/role
+    try {
+      const snap = await db.ref(`users/${uid}/role`).once("value");
+      if (snap.val() === "admin") return true;
+    } catch (err) {
+      console.warn("[Admin Check] DB user role check error:", err.message);
+    }
+
+    return false;
   }
 
   // ── Auth Guard ───────────────────────────────────────────────────────────
@@ -248,15 +371,16 @@
     }
     console.log("[Auth] Signed in as:", user.email, "| UID:", user.uid);
     try {
-      const adminFlag = await isAdmin(user.uid);
+      const adminFlag = await isAdmin(user);
       if (!adminFlag) {
         auth.signOut();
-        showError("ඔබ Admin නොවේ. ප්‍රවේශය ප්‍රතික්ෂේප විය.");
+        showError(`ඔබ Admin නොවේ (${user.email}). ප්‍රවේශය ප්‍රතික්ෂේප විය.`);
         return;
       }
       showDashboard(user);
       loadPendingTrees();
       loadApprovedTrees();
+      loadAdmins();
     } catch (err) {
       console.error("[Auth] isAdmin check failed:", err);
       showError("දෝෂයක් ඇත: " + err.message);
@@ -373,48 +497,328 @@
 
     // Real-time listener
     db.ref("trees").on("value", (snap) => {
-      const data = snap.val();
-      const trees = data ? Object.values(data) : [];
+      try {
+        const data = snap.val();
+        let trees = [];
+        if (data) {
+          if (Array.isArray(data)) {
+            trees = data.filter(Boolean);
+          } else if (typeof data === "object") {
+            trees = Object.keys(data).map(key => ({
+              ...data[key],
+              id: data[key].id || key
+            }));
+          }
+        }
 
+        document.getElementById("approved-loading").style.display = "none";
+        document.getElementById("stat-approved").textContent       = trees.length;
+        document.getElementById("approved-badge-count").textContent = trees.length;
+
+        // Unique contributor count
+        const contributors = new Set(trees.map(t => t.submittedByUid || t.submittedBy).filter(Boolean));
+        document.getElementById("stat-contributors").textContent = contributors.size || (trees.length > 0 ? "1" : "0");
+
+        if (trees.length === 0) {
+          document.getElementById("approved-empty").style.display = "block";
+          document.getElementById("approved-table").style.display = "none";
+          return;
+        }
+
+        const tbody = document.getElementById("approved-table-body");
+        tbody.innerHTML = trees.map(t => {
+          const treeId = t.id || t.tagId || "";
+          const safeName = (t.commonName || t.sinhalaName || t.name || "Tree").replace(/'/g, "\\'");
+          return `
+            <tr id="approved-row-${treeId}">
+              <td>
+                <div class="tree-name-cell">${t.commonName || t.sinhalaName || t.name || "—"}</div>
+                <div class="tree-sci-cell">${t.scientificName || ""}</div>
+              </td>
+              <td><code style="font-size:0.78rem;color:var(--primary-400);">${t.tagId || "—"}</code></td>
+              <td>${t.zone || t.faculty || "—"}</td>
+              <td>
+                <div class="submitted-by-cell">
+                  <span class="name">${t.submittedByName || "Campus Record"}</span>
+                  <span class="email">${t.submittedBy || ""}</span>
+                </div>
+              </td>
+              <td style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(t.approvedAt || t.createdAt || t.date)}</td>
+              <td>
+                <button class="btn-delete-tree" onclick="deleteApprovedTree('${treeId}', '${safeName}')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+        document.getElementById("approved-table").style.display = "table";
+        document.getElementById("approved-empty").style.display = "none";
+      } catch (err) {
+        console.error("Error rendering approved trees:", err);
+        document.getElementById("approved-loading").style.display = "none";
+      }
+    }, (err) => {
+      console.error("Error listening to approved trees:", err);
       document.getElementById("approved-loading").style.display = "none";
-      document.getElementById("stat-approved").textContent       = trees.length;
-      document.getElementById("approved-badge-count").textContent = trees.length;
+      toast("Approved trees load දෝෂයක්: " + err.message, "error");
+    });
+  }
 
-      // Unique contributor count
-      const contributors = new Set(trees.map(t => t.submittedByUid).filter(Boolean));
-      document.getElementById("stat-contributors").textContent = contributors.size || "—";
+  // ── Load Admins Team ─────────────────────────────────────────────────────
+  async function loadAdmins() {
+    const loadingEl = document.getElementById("admins-loading");
+    const tableEl   = document.getElementById("admins-table");
+    const tbodyEl   = document.getElementById("admins-table-body");
 
-      if (trees.length === 0) {
-        document.getElementById("approved-empty").style.display = "block";
-        return;
+    loadingEl.style.display = "flex";
+    tableEl.style.display   = "none";
+
+    try {
+      // 1. Fetch super admins + db admins + admin_emails + users
+      const [adminsSnap, adminEmailsSnap, usersSnap] = await Promise.all([
+        db.ref("admins").once("value").catch(() => ({ val: () => null })),
+        db.ref("admin_emails").once("value").catch(() => ({ val: () => null })),
+        db.ref("users").once("value").catch(() => ({ val: () => null }))
+      ]);
+
+      const adminsData      = adminsSnap.val() || {};
+      const adminEmailsData = adminEmailsSnap.val() || {};
+      const usersData       = usersSnap.val() || {};
+
+      const adminMap = new Map();
+
+      // Add hardcoded Super Admins
+      SUPER_ADMIN_EMAILS.forEach(email => {
+        adminMap.set(email.toLowerCase(), {
+          email: email.toLowerCase(),
+          name: "Project Owner (Super Admin)",
+          role: "Super Admin",
+          isSuper: true,
+          addedAt: "Initial Setup",
+          addedBy: "System"
+        });
+      });
+
+      // Add from admin_emails
+      Object.keys(adminEmailsData).forEach(encKey => {
+        const item = adminEmailsData[encKey];
+        if (item && item.email) {
+          const em = item.email.toLowerCase();
+          const existing = adminMap.get(em) || {};
+          adminMap.set(em, {
+            ...existing,
+            email: em,
+            name: item.name || existing.name || em.split("@")[0],
+            role: existing.isSuper ? "Super Admin" : "Administrator",
+            isSuper: existing.isSuper || false,
+            addedAt: item.addedAt || existing.addedAt || "—",
+            addedBy: item.addedBy || existing.addedBy || "Admin"
+          });
+        }
+      });
+
+      // Add from admins node (keyed by UID)
+      Object.keys(adminsData).forEach(uid => {
+        const val = adminsData[uid];
+        let userRec = usersData[uid] || {};
+        let email = (typeof val === "object" && val.email ? val.email : userRec.email) || "";
+        email = email.toLowerCase();
+
+        if (email) {
+          const existing = adminMap.get(email) || {};
+          adminMap.set(email, {
+            ...existing,
+            uid: uid,
+            email: email,
+            name: (typeof val === "object" && val.name ? val.name : userRec.displayName) || existing.name || email.split("@")[0],
+            role: existing.isSuper ? "Super Admin" : "Administrator",
+            isSuper: existing.isSuper || false,
+            addedAt: (typeof val === "object" && val.addedAt) || existing.addedAt || "—",
+            addedBy: (typeof val === "object" && val.addedBy) || existing.addedBy || "Admin"
+          });
+        } else if (uid) {
+          // Fallback if no email found
+          adminMap.set("uid:" + uid, {
+            uid: uid,
+            email: "UID: " + uid,
+            name: "Admin User",
+            role: "Administrator",
+            isSuper: false,
+            addedAt: "—",
+            addedBy: "Admin"
+          });
+        }
+      });
+
+      const adminList = Array.from(adminMap.values());
+
+      document.getElementById("stat-admins").textContent       = adminList.length;
+      document.getElementById("admin-badge-count").textContent = adminList.length;
+      loadingEl.style.display = "none";
+
+      const currentEmail = (auth.currentUser?.email || "").toLowerCase();
+
+      tbodyEl.innerHTML = adminList.map(a => {
+        const isSelf = a.email.toLowerCase() === currentEmail;
+        const roleBadge = a.isSuper
+          ? `<span class="status-pill" style="background:rgba(124,58,237,0.15);color:#a78bfa;border:1px solid rgba(124,58,237,0.3);"><i class="fa-solid fa-crown"></i> Super Admin</span>`
+          : `<span class="status-pill approved"><i class="fa-solid fa-shield-halved"></i> Admin</span>`;
+
+        let actionBtn = "";
+        if (a.isSuper) {
+          actionBtn = `<span style="font-size:0.75rem;color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Protected</span>`;
+        } else if (isSelf) {
+          actionBtn = `<span style="font-size:0.75rem;color:var(--primary-400);">(You)</span>`;
+        } else {
+          actionBtn = `
+            <button class="btn-delete-tree" onclick="revokeAdmin('${a.email}', '${a.uid || ""}')" title="Revoke Admin Access">
+              <i class="fa-solid fa-user-xmark"></i> Revoke
+            </button>
+          `;
+        }
+
+        return `
+          <tr>
+            <td>
+              <div class="tree-name-cell" style="display:flex;align-items:center;gap:0.4rem;">
+                <i class="fa-solid fa-user-shield" style="color:${a.isSuper ? '#a78bfa' : 'var(--primary-400)'};font-size:0.85rem;"></i>
+                ${a.name}
+              </div>
+              <div class="tree-sci-cell">${a.email}</div>
+            </td>
+            <td>${roleBadge}</td>
+            <td style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(a.addedAt)}</td>
+            <td style="font-size:0.78rem;color:var(--text-muted);">${a.addedBy || "System"}</td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join("");
+
+      tableEl.style.display = "table";
+    } catch (err) {
+      console.error("Error loading admins:", err);
+      loadingEl.style.display = "none";
+      toast("Admin list load දෝෂයක්: " + err.message, "error");
+    }
+  }
+
+  // ── Modal Handlers ───────────────────────────────────────────────────────
+  function openAddAdminModal() {
+    document.getElementById("new-admin-email").value = "";
+    document.getElementById("new-admin-name").value  = "";
+    document.getElementById("add-admin-error").style.display = "none";
+    document.getElementById("modal-add-admin").style.display = "flex";
+  }
+
+  function closeAddAdminModal() {
+    document.getElementById("modal-add-admin").style.display = "none";
+  }
+
+  // ── Add New Admin Submit ─────────────────────────────────────────────────
+  document.getElementById("form-add-admin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const emailInput = document.getElementById("new-admin-email").value.trim().toLowerCase();
+    const nameInput  = document.getElementById("new-admin-name").value.trim();
+    const errorEl    = document.getElementById("add-admin-error");
+    const submitBtn  = document.getElementById("btn-submit-add-admin");
+
+    errorEl.style.display = "none";
+
+    if (!emailInput || !emailInput.includes("@")) {
+      errorEl.textContent = "කරුණාකර වලංගු Email ලිපිනයක් ඇතුළත් කරන්න.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="spin" style="width:16px;height:16px;"></div> Granting...';
+
+    try {
+      const addedBy = auth.currentUser?.email || "Admin";
+      const addedAt = new Date().toISOString();
+      const adminObj = {
+        email:   emailInput,
+        name:    nameInput || emailInput.split("@")[0],
+        role:    "admin",
+        addedAt: addedAt,
+        addedBy: addedBy
+      };
+
+      // 1. Save to admin_emails node
+      const encodedKey = encodeEmailKey(emailInput);
+      await db.ref(`admin_emails/${encodedKey}`).set(adminObj);
+
+      // 2. Search users node to see if this user has already registered
+      const usersSnap = await db.ref("users").once("value");
+      const usersData = usersSnap.val();
+      if (usersData) {
+        Object.keys(usersData).forEach(async (uid) => {
+          if (usersData[uid].email && usersData[uid].email.toLowerCase() === emailInput) {
+            // Update admins/${uid} and users/${uid}/role
+            await db.ref(`admins/${uid}`).set(adminObj);
+            await db.ref(`users/${uid}/role`).set("admin");
+          }
+        });
       }
 
-      const tbody = document.getElementById("approved-table-body");
-      tbody.innerHTML = trees.map(t => `
-        <tr id="approved-row-${t.id}">
-          <td>
-            <div class="tree-name-cell">${t.commonName || "—"}</div>
-            <div class="tree-sci-cell">${t.scientificName || ""}</div>
-          </td>
-          <td><code style="font-size:0.78rem;color:var(--primary-400);">${t.tagId || "—"}</code></td>
-          <td>${t.zone || "—"}</td>
-          <td>
-            <div class="submitted-by-cell">
-              <span class="name">${t.submittedByName || "—"}</span>
-              <span class="email">${t.submittedBy || ""}</span>
-            </div>
-          </td>
-          <td style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(t.approvedAt)}</td>
-          <td>
-            <button class="btn-delete-tree" onclick="deleteApprovedTree('${t.id}', '${(t.commonName || "").replace(/'/g,"\\'")}')">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-      `).join("");
+      toast(`"${emailInput}" සාර්ථකව Admin ලෙස පත් කරන ලදී!`, "success");
+      closeAddAdminModal();
+      loadAdmins();
+    } catch (err) {
+      console.error("Error adding admin:", err);
+      errorEl.textContent = "Admin එක් කිරීමේ දෝෂයක්: " + err.message;
+      errorEl.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Grant Admin Access';
+    }
+  });
 
-      document.getElementById("approved-table").style.display = "table";
-    });
+  // ── Revoke Admin ─────────────────────────────────────────────────────────
+  async function revokeAdmin(email, uid) {
+    const cleanEmail = email.toLowerCase().trim();
+    if (SUPER_ADMIN_EMAILS.includes(cleanEmail)) {
+      alert("Super Admin ධූරය ඉවත් කළ නොහැක.");
+      return;
+    }
+    if (cleanEmail === (auth.currentUser?.email || "").toLowerCase()) {
+      alert("ඔබගේම Admin ගිණුම ඉවත් කළ නොහැක.");
+      return;
+    }
+
+    if (!confirm(`"${email}" ගේ Admin බලතල ඉවත් කිරීමට අවශ්‍යද?`)) return;
+
+    try {
+      // 1. Remove from admin_emails
+      const encKey = encodeEmailKey(cleanEmail);
+      await db.ref(`admin_emails/${encKey}`).remove();
+
+      // 2. If UID exists, remove from admins node and demote user role
+      if (uid && uid.length > 5 && !uid.startsWith("uid:")) {
+        await db.ref(`admins/${uid}`).remove();
+        await db.ref(`users/${uid}/role`).set("contributor");
+      } else {
+        // Find by email in users
+        const usersSnap = await db.ref("users").once("value");
+        const usersData = usersSnap.val();
+        if (usersData) {
+          Object.keys(usersData).forEach(async (u) => {
+            if (usersData[u].email && usersData[u].email.toLowerCase() === cleanEmail) {
+              await db.ref(`admins/${u}`).remove();
+              await db.ref(`users/${u}/role`).set("contributor");
+            }
+          });
+        }
+      }
+
+      toast(`"${email}" ගේ Admin බලතල ඉවත් කරන ලදී.`, "error");
+      loadAdmins();
+    } catch (err) {
+      console.error("Error revoking admin:", err);
+      toast("Admin ඉවත් කිරීමේ දෝෂයක්: " + err.message, "error");
+    }
   }
 
   // ── Approve Tree ─────────────────────────────────────────────────────────
