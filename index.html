@@ -118,6 +118,10 @@
           <i class="fa-solid fa-ellipsis-vertical"></i>
         </button>
         <div class="dropdown-menu" id="data-dropdown-menu">
+          <button type="button" class="dropdown-item" id="action-website-qr">
+            <i class="fa-solid fa-qrcode"></i> <span data-i18n="website_qr_btn">Website QR Code</span>
+          </button>
+          <div class="dropdown-divider"></div>
           <button type="button" class="dropdown-item" id="action-export-json">
             <i class="fa-solid fa-file-code"></i> <span data-i18n="export_json">Export as JSON</span>
           </button>
@@ -135,6 +139,36 @@
           </button>
         </div>
       </div>
+
+      <!-- Website QR Code Header Button -->
+      <button type="button" class="btn btn-secondary btn-icon" id="btn-website-qr" title="Website QR Code / වෙබ් අඩවියේ QR කේතය" aria-label="Website QR Code">
+        <i class="fa-solid fa-qrcode"></i>
+      </button>
+
+      <!-- Auth: Login Button (shown when logged out) -->
+      <button type="button" class="btn btn-auth-login" id="btn-auth-login" title="ගිණුමට ඇතුළු වන්න">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Login</span>
+      </button>
+
+      <!-- Auth: User Badge (shown when logged in) -->
+      <div class="header-user-badge" id="header-user-badge" style="display:none;">
+        <div class="user-avatar-ring">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="user-email-label" id="header-user-email"></span>
+      </div>
+
+      <!-- Auth: Admin Panel Link (shown for admins only) -->
+      <button type="button" class="btn btn-admin-pill" id="btn-admin-panel" style="display:none;" title="Admin Panel">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Admin</span>
+      </button>
+
+      <!-- Auth: Logout Button (shown when logged in) -->
+      <button type="button" class="btn btn-auth-logout" id="btn-auth-logout" style="display:none;" title="ออกจาก ගිණුම">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
 
       <!-- Theme Switcher (Dark / Light) -->
       <button type="button" class="btn-icon" id="btn-toggle-theme" title="Toggle Light / Dark Mode">
@@ -178,6 +212,9 @@
         </a>
         <button type="button" class="btn btn-secondary btn-lg" id="btn-hero-add-tree">
           <i class="fa-solid fa-circle-plus"></i> <span data-i18n="btn_register_tree">Register New Tree</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-lg" id="btn-hero-website-qr">
+          <i class="fa-solid fa-qrcode"></i> <span data-i18n="website_qr_btn">Website QR Code</span>
         </button>
         <a href="#about-section" class="btn btn-secondary btn-lg">
           <i class="fa-solid fa-circle-info"></i> <span data-i18n="nav_about">About Project</span>
@@ -816,8 +853,186 @@
     </div>
   </div>
 
+  <!-- Modal 5: Entire Website QR Code & Share Modal -->
+  <div class="modal-overlay" id="modal-website-qr" role="dialog" aria-modal="true">
+    <div class="modal-card modal-website-qr-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="website_qr_modal_title">Digital Eco Manaya - Website QR Code</span>
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="modal-website-qr">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Official Printable / Scannable Banner -->
+        <div class="website-qr-preview-wrapper">
+          <div class="website-qr-banner" id="printable-website-badge">
+            <div class="website-qr-header">
+              <img src="assets/logo-icon.png" alt="SUSL Digital Eco Manaya Logo" class="website-qr-logo">
+              <div class="website-qr-header-text">
+                <span class="website-qr-uni">SABARAGAMUWA UNIVERSITY OF SRI LANKA</span>
+                <h3 class="website-qr-brand">DIGITAL ECO <span>MANAYA</span></h3>
+                <span class="website-qr-subtitle">Campus Botanical Mapping &amp; Tree Monitoring Platform</span>
+              </div>
+            </div>
+
+            <!-- Dynamic QR code render container -->
+            <div class="website-qr-render-box">
+              <div id="website-qr-render" class="website-qr-render-target"></div>
+            </div>
+
+            <div class="website-qr-instructions">
+              <div class="website-qr-scan-prompt">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span data-i18n="website_qr_scan_notice">Scan with your smartphone camera to access Digital Eco Manaya</span>
+              </div>
+              <div class="website-qr-url-pill">
+                <i class="fa-solid fa-link"></i>
+                <span id="website-qr-display-url">https://lovindumadushanka.github.io/digital-eco-manaya/</span>
+              </div>
+            </div>
+
+            <div class="website-qr-features">
+              <span><i class="fa-solid fa-tree"></i> Tree Database</span>
+              <span><i class="fa-solid fa-map-location-dot"></i> GIS Map</span>
+              <span><i class="fa-solid fa-leaf"></i> Carbon Tracker</span>
+              <span><i class="fa-solid fa-qrcode"></i> QR Badges</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="website-qr-desc-text" data-i18n="website_qr_desc">
+          Access real-time botanical records, GIS mapping, and carbon sequestration data on your mobile device.
+        </p>
+
+        <!-- URL Copy and Action Controls -->
+        <div class="website-qr-controls">
+          <div class="qr-copy-bar">
+            <input type="url" id="website-qr-input-url" value="https://lovindumadushanka.github.io/digital-eco-manaya/" spellcheck="false" title="Official Website URL">
+            <button type="button" class="btn btn-secondary" id="btn-copy-website-url" title="Copy URL">
+              <i class="fa-regular fa-copy"></i> <span data-i18n="btn_copy_link">Copy Link</span>
+            </button>
+          </div>
+
+          <div class="qr-download-grid">
+            <a href="assets/website-qr.png" download="digital-eco-manaya-qr.png" class="btn btn-secondary" id="btn-download-qr-img">
+              <i class="fa-solid fa-download"></i> <span data-i18n="btn_download_qr">Download QR (PNG)</span>
+            </a>
+            <a href="assets/website-qr-card.png" download="digital-eco-manaya-poster.png" class="btn btn-secondary" id="btn-download-poster-img">
+              <i class="fa-solid fa-image"></i> <span data-i18n="btn_download_poster">Download Poster Card</span>
+            </a>
+            <button type="button" class="btn btn-secondary" id="btn-print-website-qr">
+              <i class="fa-solid fa-print"></i> <span data-i18n="btn_print_poster">Print Flyer / Poster</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-share-website">
+              <i class="fa-solid fa-share-nodes"></i> <span data-i18n="btn_share_site">Share Website</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="modal-website-qr" data-i18n="form_btn_cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
+
+  <!-- ==================== Modal 6: Auth (Login / Register) ==================== -->
+  <div class="modal-overlay" id="modal-auth" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-card auth-modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="auth-modal-title">
+          <i class="fa-solid fa-leaf"></i>
+          <span>DIGITAL ECO MANAYA</span>
+        </h3>
+        <button type="button" class="modal-close" data-close-modal="modal-auth">&times;</button>
+      </div>
+
+      <div class="modal-body auth-modal-body">
+        <!-- Auth hero banner -->
+        <div class="auth-hero">
+          <div class="auth-hero-icon">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+          <p class="auth-hero-sub">ගස් දත්ත ඇතුලත් කිරීමට ඔබගේ ගිණුමට ඇතුළු වන්න</p>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login" type="button">Login</button>
+          <button class="auth-tab" data-tab="register" type="button">Register</button>
+        </div>
+
+        <!-- Login Panel -->
+        <div class="auth-panel active" id="auth-panel-login">
+          <form id="form-auth-login" novalidate>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-envelope"></i> Email Address</label>
+              <input type="email" class="form-control" id="login-email" placeholder="your@email.com" required autocomplete="email">
+            </div>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-lock"></i> මුරපදය (Password)</label>
+              <div class="auth-pw-wrap">
+                <input type="password" class="form-control" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+                <button type="button" class="btn-pw-toggle" data-target="login-password" title="Show/Hide">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="auth-error" id="auth-panel-login-error" style="display:none;"></div>
+            <button type="submit" class="btn btn-primary btn-auth-submit" id="btn-login-submit">
+              <i class="fa-solid fa-right-to-bracket"></i> Login
+            </button>
+          </form>
+        </div>
+
+        <!-- Register Panel -->
+        <div class="auth-panel" id="auth-panel-register">
+          <form id="form-auth-register" novalidate>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-user"></i> ඔබේ නම (Full Name)</label>
+              <input type="text" class="form-control" id="register-name" placeholder="Kamal Perera" required autocomplete="name">
+            </div>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-envelope"></i> Email Address</label>
+              <input type="email" class="form-control" id="register-email" placeholder="your@email.com" required autocomplete="email">
+            </div>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-lock"></i> මුරපදය (Password)</label>
+              <div class="auth-pw-wrap">
+                <input type="password" class="form-control" id="register-password" placeholder="Min. 6 characters" required autocomplete="new-password">
+                <button type="button" class="btn-pw-toggle" data-target="register-password" title="Show/Hide">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="auth-field">
+              <label class="auth-label"><i class="fa-solid fa-lock"></i> මුරපදය නැවත (Confirm Password)</label>
+              <div class="auth-pw-wrap">
+                <input type="password" class="form-control" id="register-confirm" placeholder="Repeat password" required autocomplete="new-password">
+                <button type="button" class="btn-pw-toggle" data-target="register-confirm" title="Show/Hide">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="auth-error" id="auth-panel-register-error" style="display:none;"></div>
+            <button type="submit" class="btn btn-primary btn-auth-submit" id="btn-register-submit">
+              <i class="fa-solid fa-user-plus"></i> Register
+            </button>
+          </form>
+        </div>
+
+        <p class="auth-note">
+          <i class="fa-solid fa-shield-halved"></i>
+          ඔබ ඇතුලත් කරන දත්ත admin අනුමැතියෙන් පසු පමණක් site-ේ show වේ.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- ==================== Site Footer ==================== -->
   <footer class="site-footer">
@@ -839,6 +1054,7 @@
           <li><a href="#about-section" data-i18n="nav_about">About Our Project</a></li>
           <li><a href="#objectives-section" data-i18n="nav_objectives">Project Objectives</a></li>
           <li><a href="#map-section" data-i18n="nav_map">Tree Monitoring</a></li>
+          <li><a href="javascript:void(0)" id="footer-website-qr-link"><i class="fa-solid fa-qrcode"></i> <span data-i18n="website_qr_title">Website QR Code</span></a></li>
         </ul>
       </div>
 
@@ -876,17 +1092,38 @@
   <!-- QRCode.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <!-- EmailJS SDK (for automatic email confirmations) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <!-- Application Modules -->
   <script src="js/translations.js?v=firebase"></script>
   <script src="js/sampleData.js?v=firebase"></script>
-  <script src="js/db.js?v=firebase"></script>
+  <script src="js/db.js?v=auth2"></script>
+  <script src="js/auth.js?v=1"></script>
+  <script src="js/email.js?v=1"></script>
   <script src="js/map.js?v=firebase"></script>
   <script src="js/charts.js?v=firebase"></script>
-  <script src="js/app.js?v=firebase"></script>
+  <script src="js/app.js?v=auth2"></script>
+
+  <!-- Password visibility toggle (runs after all scripts) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".btn-pw-toggle").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const inp = document.getElementById(btn.dataset.target);
+          if (!inp) return;
+          const isHidden = inp.type === "password";
+          inp.type = isHidden ? "text" : "password";
+          btn.querySelector("i").className = isHidden ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+        });
+      });
+    });
+  </script>
 
 </body>
 </html>

@@ -17,7 +17,8 @@ class TreeDatabase {
       firebase.initializeApp(this.firebaseConfig);
     }
     this.db = firebase.database();
-    this.treesRef = this.db.ref('trees');
+    this.treesRef = this.db.ref('trees');         // Approved trees (public)
+    this.pendingRef = this.db.ref('pending_trees'); // Awaiting admin approval
 
     this.cachedTrees = [];
     this.isFirstLoad = true;
@@ -60,7 +61,7 @@ class TreeDatabase {
     return this.cachedTrees.find(t => t.id === id) || null;
   }
 
-  // Add new tree
+  // Add new tree → saved to /pending_trees/ for admin approval
   async addTree(treeData) {
     if (!treeData.id) {
       treeData.id = "tree-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
@@ -72,9 +73,40 @@ class TreeDatabase {
       treeData.carbonOffsetKg = this.estimateCarbon(treeData.height, treeData.dbh);
     }
 
-    // Set to Firebase (this will automatically trigger onValue and update UI)
-    await this.treesRef.child(treeData.id).set(treeData);
+    // Mark as pending approval
+    treeData.status = "pending";
+
+    // Save to pending_trees (NOT trees/) — awaiting admin approval
+    await this.pendingRef.child(treeData.id).set(treeData);
     return treeData;
+  }
+
+  // Get all pending trees (admin only)
+  async getPendingTrees() {
+    const snap = await this.pendingRef.once("value");
+    const data = snap.val();
+    if (!data) return [];
+    return Object.values(data);
+  }
+
+  // Approve a pending tree → move to /trees/ (becomes visible on site)
+  async approveTree(id) {
+    const snap = await this.pendingRef.child(id).once("value");
+    const tree = snap.val();
+    if (!tree) throw new Error("Pending tree not found: " + id);
+    tree.status = "approved";
+    tree.approvedAt = new Date().toISOString();
+    // Copy to approved trees collection
+    await this.treesRef.child(id).set(tree);
+    // Remove from pending
+    await this.pendingRef.child(id).remove();
+    return tree;
+  }
+
+  // Reject a pending tree → remove from pending (never appears on site)
+  async rejectTree(id) {
+    await this.pendingRef.child(id).remove();
+    return true;
   }
 
   // Update existing tree

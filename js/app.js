@@ -20,17 +20,21 @@ class FloraCampusApp {
     this.applyTheme(this.currentTheme);
     this.setLanguage(this.currentLang, false);
     this.initEventListeners();
+    this.initAuth();
 
     // Initialize Leaflet Map
     campusMap.init("campus-map", [6.7148, 80.7872], 16);
 
-    // Load trees from IndexedDB
+    // Load trees from Firebase (approved only)
     await this.loadTrees();
 
     // Listen to data-changed events from DB
     window.addEventListener("flora:data-changed", async () => {
       await this.loadTrees();
     });
+
+    // Initialize EmailJS
+    emailNotifier.init();
 
     // Check URL parameters (e.g. if opened via QR Code scan like ?treeId=tree-001)
     const urlParams = new URLSearchParams(window.location.search);
@@ -418,6 +422,65 @@ class FloraCampusApp {
     }
   }
 
+  // ── Authentication Integration ──────────────────────────────────────────────
+
+  /** Wire Firebase Auth state to header UI */
+  initAuth() {
+    authManager.onAuthStateChanged((user) => {
+      this._updateAuthUI(user);
+    });
+  }
+
+  /** Update header login/logout button and user badge */
+  _updateAuthUI(user) {
+    const loginBtn   = document.getElementById("btn-auth-login");
+    const logoutBtn  = document.getElementById("btn-auth-logout");
+    const userBadge  = document.getElementById("header-user-badge");
+    const userEmail  = document.getElementById("header-user-email");
+    const adminLink  = document.getElementById("btn-admin-panel");
+
+    if (user) {
+      // Logged in
+      if (loginBtn)  loginBtn.style.display  = "none";
+      if (logoutBtn) logoutBtn.style.display  = "flex";
+      if (userBadge) userBadge.style.display  = "flex";
+      if (userEmail) userEmail.textContent    = user.displayName || user.email;
+      if (adminLink) adminLink.style.display  = authManager.isAdmin() ? "flex" : "none";
+    } else {
+      // Not logged in
+      if (loginBtn)  loginBtn.style.display  = "flex";
+      if (logoutBtn) logoutBtn.style.display  = "none";
+      if (userBadge) userBadge.style.display  = "none";
+      if (adminLink) adminLink.style.display  = "none";
+    }
+  }
+
+  /** Open Auth Modal (login/register) */
+  openAuthModal(tab = "login") {
+    this.openModal("modal-auth");
+    // Switch to the correct tab
+    document.querySelectorAll(".auth-tab").forEach(t =>
+      t.classList.toggle("active", t.dataset.tab === tab)
+    );
+    document.querySelectorAll(".auth-panel").forEach(p =>
+      p.classList.toggle("active", p.id === `auth-panel-${tab}`)
+    );
+  }
+
+  /** Clear auth form errors */
+  _clearAuthError(panelId) {
+    const el = document.getElementById(panelId + "-error");
+    if (el) { el.textContent = ""; el.style.display = "none"; }
+  }
+
+  /** Show auth form error */
+  _showAuthError(panelId, message) {
+    const el = document.getElementById(panelId + "-error");
+    if (el) { el.textContent = message; el.style.display = "block"; }
+  }
+
+  // ── Tree Form (auth-guarded) ────────────────────────────────────────────────
+
   // Open Add / Edit Tree Modal
   openTreeForm(treeToEdit = null) {
     const form = document.getElementById("form-tree");
@@ -489,6 +552,15 @@ class FloraCampusApp {
   async handleFormSubmit(e) {
     e.preventDefault();
 
+    // ── Auth guard ────────────────────────────────────────────────────────────
+    const currentUser = authManager.getCurrentUser();
+    if (!currentUser) {
+      this.closeModal("modal-tree-form");
+      this.openAuthModal("login");
+      this.showToast("ඉදිරිපත් කිරීමට login කරන්න.", "error");
+      return;
+    }
+
     const editId = document.getElementById("tree-edit-id").value;
     const commonName = document.getElementById("tree-common-name").value.trim();
     const scientificName = document.getElementById("tree-scientific-name").value.trim();
@@ -529,17 +601,34 @@ class FloraCampusApp {
       wateringSchedule,
       notes,
       imageUrl,
-      lastInspected: new Date().toISOString().slice(0, 10)
+      lastInspected: new Date().toISOString().slice(0, 10),
+      // Submitter info (auth)
+      submittedBy:    currentUser.email,
+      submittedByUid: currentUser.uid,
+      submittedByName: currentUser.displayName || currentUser.email,
     };
 
     try {
       if (editId) {
+        // Edits by admin go directly to /trees/ (updateTree stays as-is)
         treePayload.id = editId;
         await treeDB.updateTree(treePayload);
         this.showToast(`"${commonName}" පැලයේ තොරතුරු සාර්ථකව යාවත්කාලීන විය!`, "success");
       } else {
+        // New submission → goes to /pending_trees/ for admin approval
         await treeDB.addTree(treePayload);
-        this.showToast(`"${commonName}" සාර්ථකව පද්ධතියට එක් කරන ලදී!`, "success");
+        this.showToast(`"${commonName}" ඉදිරිපත් කරන ලදී! Admin අනුමැතිය ලැබෙන තෙක් රැඳෙන්න.`, "success");
+
+        // Send confirmation email to contributor
+        if (emailNotifier.isReady()) {
+          emailNotifier
+            .sendSubmissionConfirmation(currentUser.email, currentUser.displayName, treePayload)
+            .then(result => {
+              if (result.ok) {
+                this.showToast(`ඔබේ email (${currentUser.email}) ට copy එකක් යවන ලදී.`, "success");
+              }
+            });
+        }
       }
 
       this.closeModal("modal-tree-form");
@@ -671,9 +760,9 @@ class FloraCampusApp {
     const qrContainer = document.getElementById("badge-qr-render");
     qrContainer.innerHTML = "";
 
-    // Generate QR payload linking to this tree or direct details
-    const currentOrigin = window.location.origin + window.location.pathname;
-    const qrData = `${currentOrigin}?treeId=${encodeURIComponent(tree.id)}`;
+    // Generate QR payload linking to this tree on the live public internet website
+    const publicBaseUrl = "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const qrData = `${publicBaseUrl}?treeId=${encodeURIComponent(tree.id)}`;
 
     if (typeof QRCode !== "undefined") {
       this.qrInstance = new QRCode(qrContainer, {
@@ -693,6 +782,84 @@ class FloraCampusApp {
 
   // Trigger browser print for badge
   printQRBadge() {
+    window.print();
+  }
+
+  // Open Entire Website QR Code Modal
+  openWebsiteQR() {
+    // Official public internet URL for Digital Eco Manaya
+    const publicSiteUrl = "https://lovindumadushanka.github.io/digital-eco-manaya/";
+
+    const inputUrl = document.getElementById("website-qr-input-url");
+    const displayUrl = document.getElementById("website-qr-display-url");
+    if (inputUrl) inputUrl.value = publicSiteUrl;
+    if (displayUrl) displayUrl.textContent = publicSiteUrl;
+
+    const qrContainer = document.getElementById("website-qr-render");
+    if (qrContainer) {
+      qrContainer.innerHTML = "";
+      if (typeof QRCode !== "undefined") {
+        new QRCode(qrContainer, {
+          text: publicSiteUrl,
+          width: 170,
+          height: 170,
+          colorDark: "#064e3b",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } else {
+        qrContainer.innerHTML = `<img src="assets/website-qr.png" alt="Website QR Code" style="width: 170px; height: 170px; object-fit: contain;">`;
+      }
+    }
+
+    this.openModal("modal-website-qr");
+  }
+
+  // Copy website URL to clipboard
+  async copyWebsiteLink() {
+    const inputUrl = document.getElementById("website-qr-input-url");
+    const url = inputUrl ? inputUrl.value : "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        inputUrl?.select();
+        document.execCommand("copy");
+      }
+      const t = TRANSLATIONS[this.currentLang] || TRANSLATIONS.en;
+      this.showToast(t.toast_link_copied || "Website URL copied to clipboard!", "success");
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+      this.showToast("Link copy failed", "error");
+    }
+  }
+
+  // Share website via Web Share API
+  async shareWebsite() {
+    const inputUrl = document.getElementById("website-qr-input-url");
+    const url = inputUrl ? inputUrl.value : "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const shareData = {
+      title: "DIGITAL ECO MANAYA | Sabaragamuwa University of Sri Lanka",
+      text: "Explore campus flora, GIS tree mapping & carbon analytics at Sabaragamuwa University of Sri Lanka.",
+      url: url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.warn("Share aborted or failed:", err);
+          this.copyWebsiteLink();
+        }
+      }
+    } else {
+      this.copyWebsiteLink();
+    }
+  }
+
+  // Trigger browser print for website QR banner
+  printWebsiteBadge() {
     window.print();
   }
 
@@ -896,9 +1063,80 @@ class FloraCampusApp {
     // Theme Switcher
     document.getElementById("btn-toggle-theme")?.addEventListener("click", () => this.toggleTheme());
 
-    // Add Tree Modal Buttons (Header and Hero)
-    document.getElementById("btn-open-add-tree")?.addEventListener("click", () => this.openTreeForm());
-    document.getElementById("btn-hero-add-tree")?.addEventListener("click", () => this.openTreeForm());
+    // Add Tree Modal Buttons (Header and Hero) — require login
+    document.getElementById("btn-open-add-tree")?.addEventListener("click", () => {
+      if (!authManager.isLoggedIn()) { this.openAuthModal("login"); return; }
+      this.openTreeForm();
+    });
+    document.getElementById("btn-hero-add-tree")?.addEventListener("click", () => {
+      if (!authManager.isLoggedIn()) { this.openAuthModal("login"); return; }
+      this.openTreeForm();
+    });
+
+    // ── Auth Modal ───────────────────────────────────────────────────────────
+    document.getElementById("btn-auth-login")?.addEventListener("click", () => this.openAuthModal("login"));
+    document.getElementById("btn-auth-logout")?.addEventListener("click", async () => {
+      await authManager.logout();
+      this.showToast("සාර්ථකව logout විය.", "success");
+    });
+
+    // Auth tab switching
+    document.querySelectorAll(".auth-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const t = tab.dataset.tab;
+        document.querySelectorAll(".auth-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === t));
+        document.querySelectorAll(".auth-panel").forEach(p => p.classList.toggle("active", p.id === `auth-panel-${t}`));
+      });
+    });
+
+    // Login form submit
+    document.getElementById("form-auth-login")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      this._clearAuthError("auth-panel-login");
+      const email    = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+      const btn      = document.getElementById("btn-login-submit");
+      btn.disabled = true; btn.textContent = "Loading...";
+      try {
+        await authManager.login(email, password);
+        this.closeModal("modal-auth");
+        this.showToast("සාර්ථකව login විය!", "success");
+      } catch (err) {
+        this._showAuthError("auth-panel-login", authManager.getFriendlyError(err.code));
+      } finally {
+        btn.disabled = false; btn.textContent = "Login";
+      }
+    });
+
+    // Register form submit
+    document.getElementById("form-auth-register")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      this._clearAuthError("auth-panel-register");
+      const name     = document.getElementById("register-name").value.trim();
+      const email    = document.getElementById("register-email").value.trim();
+      const password = document.getElementById("register-password").value;
+      const confirm  = document.getElementById("register-confirm").value;
+      if (password !== confirm) {
+        this._showAuthError("auth-panel-register", "මුරපද දෙක ගැළපෙන්නේ නැත.");
+        return;
+      }
+      const btn = document.getElementById("btn-register-submit");
+      btn.disabled = true; btn.textContent = "Loading...";
+      try {
+        await authManager.register(email, password, name);
+        this.closeModal("modal-auth");
+        this.showToast(`"${name}" ලෙස සාර්ථකව ලියාපදිංචි විය!`, "success");
+      } catch (err) {
+        this._showAuthError("auth-panel-register", authManager.getFriendlyError(err.code));
+      } finally {
+        btn.disabled = false; btn.textContent = "Register";
+      }
+    });
+
+    // Admin panel link
+    document.getElementById("btn-admin-panel")?.addEventListener("click", () => {
+      window.open("admin.html", "_blank");
+    });
 
     // Nav Links Active State update on scroll
     const sections = document.querySelectorAll("section[id]");
@@ -961,6 +1199,36 @@ class FloraCampusApp {
 
     // Print Badge Button
     document.getElementById("btn-print-badge")?.addEventListener("click", () => this.printQRBadge());
+
+    // Website QR Code Modal triggers
+    document.getElementById("btn-website-qr")?.addEventListener("click", () => this.openWebsiteQR());
+    document.getElementById("action-website-qr")?.addEventListener("click", () => this.openWebsiteQR());
+    document.getElementById("btn-hero-website-qr")?.addEventListener("click", () => this.openWebsiteQR());
+    document.getElementById("footer-website-qr-link")?.addEventListener("click", () => this.openWebsiteQR());
+
+    // Website QR Controls
+    document.getElementById("btn-copy-website-url")?.addEventListener("click", () => this.copyWebsiteLink());
+    document.getElementById("btn-share-website")?.addEventListener("click", () => this.shareWebsite());
+    document.getElementById("btn-print-website-qr")?.addEventListener("click", () => this.printWebsiteBadge());
+
+    // Live URL QR updates if modified
+    document.getElementById("website-qr-input-url")?.addEventListener("input", (e) => {
+      const customUrl = e.target.value.trim();
+      const qrContainer = document.getElementById("website-qr-render");
+      const displayUrl = document.getElementById("website-qr-display-url");
+      if (displayUrl) displayUrl.textContent = customUrl || "https://lovindumadushanka.github.io/digital-eco-manaya/";
+      if (qrContainer && customUrl && typeof QRCode !== "undefined") {
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+          text: customUrl,
+          width: 170,
+          height: 170,
+          colorDark: "#064e3b",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+    });
 
     // Data Dropdown
     const dropdownWrapper = document.getElementById("data-dropdown-wrapper");

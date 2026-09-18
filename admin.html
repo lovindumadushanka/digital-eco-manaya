@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | DIGITAL ECO MANAYA</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════
+       ADMIN LOGIN SCREEN
+  ══════════════════════════════════════════════════════════ -->
+  <div id="admin-login-screen">
+    <div class="admin-login-card">
+      <div class="admin-login-logo">
+        <div class="logo-ring"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="admin-badge"><i class="fa-solid fa-lock"></i> Admin Access Only</div>
+        <h2>DIGITAL ECO <span>MANAYA</span></h2>
+        <p>Sabaragamuwa University of Sri Lanka</p>
+      </div>
+
+      <form id="form-admin-login" novalidate>
+        <div class="admin-field">
+          <label class="admin-label"><i class="fa-solid fa-envelope"></i> Admin Email</label>
+          <input type="email" class="admin-input" id="admin-login-email" placeholder="admin@email.com" required autocomplete="email">
+        </div>
+        <div class="admin-field">
+          <label class="admin-label"><i class="fa-solid fa-lock"></i> Password</label>
+          <input type="password" class="admin-input" id="admin-login-password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div class="admin-error" id="admin-login-error" style="display:none;"></div>
+        <button type="submit" class="btn-admin-login" id="btn-admin-login-submit">
+          <i class="fa-solid fa-right-to-bracket"></i> Enter Admin Panel
+        </button>
+      </form>
+
+      <p style="text-align:center; margin-top:1.25rem; font-size:0.76rem; color:var(--text-muted);">
+        <a href="index.html" style="color:var(--primary-400); text-decoration:none;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Website
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       ADMIN DASHBOARD (shown after login)
+  ══════════════════════════════════════════════════════════ -->
+  <div id="admin-dashboard">
+
+    <!-- ── Admin Header ─────────────────────────────────────────────── -->
+    <header class="admin-header">
+      <div class="admin-header-brand">
+        <div class="brand-icon"><i class="fa-solid fa-seedling"></i></div>
+        <div class="brand-text">
+          <strong>DIGITAL ECO <span style="color:var(--primary-400);">MANAYA</span></strong>
+          <span>Admin Control Panel</span>
+        </div>
+      </div>
+
+      <div class="admin-header-actions">
+        <div class="admin-user-pill">
+          <div class="av"><i class="fa-solid fa-user-shield"></i></div>
+          <span id="admin-user-display">Admin</span>
+        </div>
+        <a href="index.html" class="btn-back-site" target="_blank">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Website
+        </a>
+        <button type="button" class="btn-admin-logout" id="btn-admin-logout">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Admin Main Content ───────────────────────────────────────── -->
+    <main class="admin-main">
+
+      <!-- Stats Row -->
+      <div class="admin-stats-row">
+        <div class="stat-card">
+          <div class="stat-icon amber"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-card-text">
+            <div class="stat-card-value" id="stat-pending">–</div>
+            <div class="stat-card-label">Pending Approval</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fa-solid fa-tree"></i></div>
+          <div class="stat-card-text">
+            <div class="stat-card-value" id="stat-approved">–</div>
+            <div class="stat-card-label">Approved Trees</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon violet"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-card-text">
+            <div class="stat-card-value" id="stat-contributors">–</div>
+            <div class="stat-card-label">Contributors</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 1: Pending Trees ════════════════════════════════ -->
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <i class="fa-solid fa-clock" style="color:var(--accent-amber);"></i>
+          Pending Review
+          <span class="badge-count" id="pending-badge-count">0</span>
+        </div>
+        <button type="button" id="btn-refresh-pending" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:0.4rem 0.85rem;font-size:0.78rem;cursor:pointer;display:flex;align-items:center;gap:0.4rem;">
+          <i class="fa-solid fa-rotate-right"></i> Refresh
+        </button>
+      </div>
+
+      <div class="admin-table-wrap" id="pending-table-wrap">
+        <div class="admin-loading" id="pending-loading">
+          <div class="spin"></div> Loading pending submissions...
+        </div>
+        <table class="admin-table" id="pending-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Tree Name</th>
+              <th>Tag ID</th>
+              <th>Zone / Faculty</th>
+              <th>Submitted By</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pending-table-body"></tbody>
+        </table>
+        <div class="admin-empty" id="pending-empty" style="display:none;">
+          <i class="fa-solid fa-circle-check"></i>
+          <h4>All Clear!</h4>
+          <p>No pending tree submissions. All caught up!</p>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 2: Approved Trees ═══════════════════════════════ -->
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <i class="fa-solid fa-tree" style="color:var(--primary-400);"></i>
+          Approved Trees
+          <span class="badge-count" style="background:rgba(16,185,129,0.12);color:var(--primary-400);border-color:rgba(16,185,129,0.2);" id="approved-badge-count">0</span>
+        </div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <div class="admin-loading" id="approved-loading">
+          <div class="spin"></div> Loading approved trees...
+        </div>
+        <table class="admin-table" id="approved-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Tree Name</th>
+              <th>Tag ID</th>
+              <th>Zone</th>
+              <th>Submitted By</th>
+              <th>Approved</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="approved-table-body"></tbody>
+        </table>
+        <div class="admin-empty" id="approved-empty" style="display:none;">
+          <i class="fa-solid fa-seedling"></i>
+          <h4>No Approved Trees Yet</h4>
+          <p>Approve pending submissions to populate the site.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="admin-toast-container" id="admin-toast-container"></div>
+
+  <!-- ══ Firebase SDK ═══════════════════════════════════════════════ -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+  <!-- ══ Admin Application Script ══════════════════════════════════ -->
+  <script>
+  // ── Firebase Config (same as main site) ──────────────────────────────────
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyB5Yj8ofZISYI-hWezwRcIN34ALBnCrsiE",
+    authDomain:        "digital-eco-manaya.firebaseapp.com",
+    databaseURL:       "https://digital-eco-manaya-default-rtdb.firebaseio.com",
+    projectId:         "digital-eco-manaya",
+    storageBucket:     "digital-eco-manaya.firebasestorage.app",
+    messagingSenderId: "652892678519",
+    appId:             "1:652892678519:web:828ee44a97b0a4a9bad972"
+  };
+
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db   = firebase.database();
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function toast(msg, type = "success") {
+    const c = document.getElementById("admin-toast-container");
+    const t = document.createElement("div");
+    t.className = `admin-toast ${type}`;
+    t.innerHTML = `<i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-xmark"}"></i> ${msg}`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("en-LK", {
+      year: "numeric", month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+
+  async function isAdmin(uid) {
+    try {
+      console.log("[Admin Check] Checking UID:", uid);
+      const snap = await db.ref(`admins/${uid}`).once("value");
+      const result = snap.exists() && snap.val() === true;
+      console.log("[Admin Check] Result:", result, "| Value:", snap.val());
+      return result;
+    } catch (err) {
+      console.error("[Admin Check] DB read error:", err.code, err.message);
+      return false;
+    }
+  }
+
+  // ── Auth Guard ───────────────────────────────────────────────────────────
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      showLoginScreen();
+      return;
+    }
+    console.log("[Auth] Signed in as:", user.email, "| UID:", user.uid);
+    try {
+      const adminFlag = await isAdmin(user.uid);
+      if (!adminFlag) {
+        auth.signOut();
+        showError("ඔබ Admin නොවේ. ප්‍රවේශය ප්‍රතික්ෂේප විය.");
+        return;
+      }
+      showDashboard(user);
+      loadPendingTrees();
+      loadApprovedTrees();
+    } catch (err) {
+      console.error("[Auth] isAdmin check failed:", err);
+      showError("දෝෂයක් ඇත: " + err.message);
+    }
+  });
+
+
+  function showLoginScreen() {
+    document.getElementById("admin-login-screen").style.display = "flex";
+    document.getElementById("admin-dashboard").style.display    = "none";
+  }
+  function showDashboard(user) {
+    document.getElementById("admin-login-screen").style.display = "none";
+    document.getElementById("admin-dashboard").style.display    = "flex";
+    document.getElementById("admin-user-display").textContent   = user.displayName || user.email;
+  }
+  function showError(msg) {
+    const el = document.getElementById("admin-login-error");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  // ── Login Form ───────────────────────────────────────────────────────────
+  document.getElementById("form-admin-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    document.getElementById("admin-login-error").style.display = "none";
+    const email    = document.getElementById("admin-login-email").value.trim();
+    const password = document.getElementById("admin-login-password").value;
+    const btn      = document.getElementById("btn-admin-login-submit");
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spin" style="width:16px;height:16px;"></div> Logging in...';
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (err) {
+      const messages = {
+        "auth/wrong-password":   "Email හෝ Password වැරදිය.",
+        "auth/user-not-found":   "ඔබ ලියාපදිංචි Admin නොවේ.",
+        "auth/invalid-credential": "Email හෝ Password වැරදිය.",
+      };
+      showError(messages[err.code] || err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Enter Admin Panel';
+    }
+  });
+
+  // ── Logout ───────────────────────────────────────────────────────────────
+  document.getElementById("btn-admin-logout").addEventListener("click", async () => {
+    await auth.signOut();
+    toast("Logout සාර්ථකයි.", "success");
+  });
+
+  // ── Load Pending Trees ───────────────────────────────────────────────────
+  async function loadPendingTrees() {
+    document.getElementById("pending-loading").style.display = "flex";
+    document.getElementById("pending-table").style.display   = "none";
+    document.getElementById("pending-empty").style.display   = "none";
+
+    try {
+      const snap = await db.ref("pending_trees").once("value");
+      const data = snap.val();
+      const trees = data ? Object.values(data) : [];
+
+      document.getElementById("pending-loading").style.display = "none";
+      document.getElementById("stat-pending").textContent       = trees.length;
+      document.getElementById("pending-badge-count").textContent = trees.length;
+
+      if (trees.length === 0) {
+        document.getElementById("pending-empty").style.display = "block";
+        return;
+      }
+
+      const tbody = document.getElementById("pending-table-body");
+      tbody.innerHTML = trees.map(t => `
+        <tr id="pending-row-${t.id}">
+          <td>
+            <div class="tree-name-cell">${t.commonName || "—"}</div>
+            <div class="tree-sci-cell">${t.scientificName || ""}</div>
+          </td>
+          <td><code style="font-size:0.78rem;color:var(--primary-400);">${t.tagId || "—"}</code></td>
+          <td>${t.zone || "—"}</td>
+          <td>
+            <div class="submitted-by-cell">
+              <span class="name">${t.submittedByName || "—"}</span>
+              <span class="email">${t.submittedBy || ""}</span>
+            </div>
+          </td>
+          <td style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(t.createdAt)}</td>
+          <td>
+            <div class="action-btn-group">
+              <button class="btn-approve" onclick="approveTree('${t.id}')">
+                <i class="fa-solid fa-check"></i> Approve
+              </button>
+              <button class="btn-reject" onclick="rejectTree('${t.id}', '${(t.commonName || "").replace(/'/g,"\\'")}')">
+                <i class="fa-solid fa-xmark"></i> Reject
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      document.getElementById("pending-table").style.display = "table";
+    } catch (err) {
+      document.getElementById("pending-loading").style.display = "none";
+      toast("Pending trees load කිරීමේ දෝෂයක්: " + err.message, "error");
+    }
+  }
+
+  // ── Load Approved Trees ──────────────────────────────────────────────────
+  async function loadApprovedTrees() {
+    document.getElementById("approved-loading").style.display = "flex";
+    document.getElementById("approved-table").style.display   = "none";
+    document.getElementById("approved-empty").style.display   = "none";
+
+    // Real-time listener
+    db.ref("trees").on("value", (snap) => {
+      const data = snap.val();
+      const trees = data ? Object.values(data) : [];
+
+      document.getElementById("approved-loading").style.display = "none";
+      document.getElementById("stat-approved").textContent       = trees.length;
+      document.getElementById("approved-badge-count").textContent = trees.length;
+
+      // Unique contributor count
+      const contributors = new Set(trees.map(t => t.submittedByUid).filter(Boolean));
+      document.getElementById("stat-contributors").textContent = contributors.size || "—";
+
+      if (trees.length === 0) {
+        document.getElementById("approved-empty").style.display = "block";
+        return;
+      }
+
+      const tbody = document.getElementById("approved-table-body");
+      tbody.innerHTML = trees.map(t => `
+        <tr id="approved-row-${t.id}">
+          <td>
+            <div class="tree-name-cell">${t.commonName || "—"}</div>
+            <div class="tree-sci-cell">${t.scientificName || ""}</div>
+          </td>
+          <td><code style="font-size:0.78rem;color:var(--primary-400);">${t.tagId || "—"}</code></td>
+          <td>${t.zone || "—"}</td>
+          <td>
+            <div class="submitted-by-cell">
+              <span class="name">${t.submittedByName || "—"}</span>
+              <span class="email">${t.submittedBy || ""}</span>
+            </div>
+          </td>
+          <td style="font-size:0.78rem;color:var(--text-muted);">${fmtDate(t.approvedAt)}</td>
+          <td>
+            <button class="btn-delete-tree" onclick="deleteApprovedTree('${t.id}', '${(t.commonName || "").replace(/'/g,"\\'")}')">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+      document.getElementById("approved-table").style.display = "table";
+    });
+  }
+
+  // ── Approve Tree ─────────────────────────────────────────────────────────
+  async function approveTree(id) {
+    const row = document.getElementById("pending-row-" + id);
+    if (!row) return;
+
+    // Disable buttons
+    row.querySelectorAll("button").forEach(b => b.disabled = true);
+
+    try {
+      // Fetch pending record
+      const snap = await db.ref("pending_trees/" + id).once("value");
+      const tree = snap.val();
+      if (!tree) throw new Error("Tree not found.");
+
+      // Move to /trees/ as approved
+      tree.status     = "approved";
+      tree.approvedAt = new Date().toISOString();
+      await db.ref("trees/" + id).set(tree);
+
+      // Remove from pending
+      await db.ref("pending_trees/" + id).remove();
+
+      // Remove row from UI with animation
+      row.style.opacity = "0";
+      row.style.transition = "opacity 0.3s";
+      setTimeout(() => {
+        row.remove();
+        // Update pending count
+        const remaining = document.querySelectorAll("#pending-table-body tr").length;
+        document.getElementById("stat-pending").textContent = remaining;
+        document.getElementById("pending-badge-count").textContent = remaining;
+        if (remaining === 0) {
+          document.getElementById("pending-table").style.display = "none";
+          document.getElementById("pending-empty").style.display = "block";
+        }
+      }, 300);
+
+      toast(`"${tree.commonName}" approve කරන ලදී! Site-ේ දිස් වෙනු ඇත.`, "success");
+    } catch (err) {
+      row.querySelectorAll("button").forEach(b => b.disabled = false);
+      toast("Approve කිරීමේ දෝෂයක්: " + err.message, "error");
+    }
+  }
+
+  // ── Reject Tree ──────────────────────────────────────────────────────────
+  async function rejectTree(id, name) {
+    if (!confirm(`"${name}" reject කිරීමට අවශ්‍යද? දත්ත ස්ථිරවම ඉවත් වේ.`)) return;
+    try {
+      await db.ref("pending_trees/" + id).remove();
+      const row = document.getElementById("pending-row-" + id);
+      if (row) { row.style.opacity = "0"; setTimeout(() => row.remove(), 300); }
+      toast(`"${name}" reject කරන ලදී.`, "error");
+      const remaining = document.querySelectorAll("#pending-table-body tr").length - 1;
+      document.getElementById("stat-pending").textContent = Math.max(0, remaining);
+      document.getElementById("pending-badge-count").textContent = Math.max(0, remaining);
+    } catch (err) {
+      toast("Reject කිරීමේ දෝෂයක්: " + err.message, "error");
+    }
+  }
+
+  // ── Delete Approved Tree ─────────────────────────────────────────────────
+  async function deleteApprovedTree(id, name) {
+    if (!confirm(`"${name}" site-ෙන් ඉවත් කිරීමට අවශ්‍යද?`)) return;
+    try {
+      await db.ref("trees/" + id).remove();
+      toast(`"${name}" site-ෙන් ඉවත් කරන ලදී.`, "error");
+    } catch (err) {
+      toast("Delete කිරීමේ දෝෂයක්: " + err.message, "error");
+    }
+  }
+
+  // ── Refresh button ────────────────────────────────────────────────────────
+  document.getElementById("btn-refresh-pending").addEventListener("click", loadPendingTrees);
+  </script>
+
+</body>
+</html>

@@ -119,7 +119,21 @@ const TRANSLATIONS = {
     btn_print_badge: "Print Badge",
     qr_badge_title: "SUSL Tree Tag Badge",
     qr_scan_notice: "Scan to view tree health & ecological records",
-    toast_lang_changed: "Language switched to English."
+    toast_lang_changed: "Language switched to English.",
+
+    // Website QR & Share
+    website_qr_btn: "Website QR Code",
+    website_qr_title: "Website QR Code",
+    website_qr_modal_title: "Digital Eco Manaya - Website QR Code",
+    website_qr_scan_notice: "Scan with your smartphone camera to access Digital Eco Manaya",
+    website_qr_desc: "Access real-time botanical records, GIS mapping, and carbon sequestration data on your mobile device.",
+    btn_download_qr: "Download QR (PNG)",
+    btn_download_poster: "Download Poster Card",
+    btn_print_poster: "Print Flyer / Poster",
+    btn_copy_link: "Copy Link",
+    btn_share_site: "Share Website",
+    toast_link_copied: "Website URL copied to clipboard!",
+    toast_share_not_supported: "Direct sharing is not supported on this browser. Link copied instead!"
   },
 
   si: {
@@ -237,7 +251,21 @@ const TRANSLATIONS = {
     btn_print_badge: "මුද්‍රණය කරන්න (Print Badge)",
     qr_badge_title: "SUSL Tree Tag Badge",
     qr_scan_notice: "ගසේ සෞඛ්‍යය සහ විස්තර බැලීමට Scan කරන්න",
-    toast_lang_changed: "භාෂාව සිංහල ලෙස වෙනස් කරන ලදී."
+    toast_lang_changed: "භාෂාව සිංහල ලෙස වෙනස් කරන ලදී.",
+
+    // Website QR & Share
+    website_qr_btn: "වෙබ් අඩවියේ QR කේතය",
+    website_qr_title: "වෙබ් අඩවියේ QR කේතය",
+    website_qr_modal_title: "Digital Eco Manaya - නිල වෙබ් අඩවි QR කේතය",
+    website_qr_scan_notice: "ස්මාර්ට් දුරකථනයෙන් Scan කර විශ්වවිද්‍යාලයේ වෙබ් අඩවියට පිවිසෙන්න",
+    website_qr_desc: "ශ්‍රී ලංකා සබරගමුව විශ්වවිද්‍යාලයීය DIGITAL ECO MANAYA වේදිකාවට පිවිසීමට මෙම QR කේතය හෝ මුද්‍රිත පෝස්ටරය භාවිතා කරන්න.",
+    btn_download_qr: "QR කේතය බාගත කරන්න (PNG)",
+    btn_download_poster: "පෝස්ටරය බාගත කරන්න (Card)",
+    btn_print_poster: "මුද්‍රණය කරන්න (Print Flyer)",
+    btn_copy_link: "Link එක Copy කරන්න",
+    btn_share_site: "වෙබ් අඩවිය Share කරන්න",
+    toast_link_copied: "වෙබ් අඩවියේ Link එක සාර්ථකව Copy විය!",
+    toast_share_not_supported: "ඔබගේ බ්‍රවුසරය Share සඳහා සහය නොදක්වයි. Link එක Copy කරන ලදී!"
   },
 
   ta: {
@@ -355,6 +383,20 @@ const TRANSLATIONS = {
     btn_print_badge: "அச்சிடுக (Print Badge)",
     qr_badge_title: "SUSL மர அடையாள அட்டை",
     qr_scan_notice: "மரத்தின் விவரங்களைப் பார்க்க ஸ்கேன் செய்க",
-    toast_lang_changed: "மொழி தமிழுக்கு மாற்றப்பட்டது."
+    toast_lang_changed: "மொழி தமிழுக்கு மாற்றப்பட்டது.",
+
+    // Website QR & Share
+    website_qr_btn: "இணையதள QR குறியீடு",
+    website_qr_title: "இணையதள QR குறியீடு",
+    website_qr_modal_title: "Digital Eco Manaya - அதிகாரப்பூர்வ இணையதள QR குறியீடு",
+    website_qr_scan_notice: "ஸ்மார்ட்போன் மூலம் ஸ்கேன் செய்து இணையதளத்திற்குச் செல்லுங்கள்",
+    website_qr_desc: "சப்ரகமுவ பல்கலைக்கழகத்தின் DIGITAL ECO MANAYA தளத்தை உடனடியாக அணுக இந்த QR குறியீடு அல்லது அச்சிடக்கூடிய சுவரொட்டியைப் பயன்படுத்தவும்.",
+    btn_download_qr: "QR குறியீட்டைப் பதிவிறக்குக (PNG)",
+    btn_download_poster: "சுவரொட்டியைப் பதிவிறக்குக (Card)",
+    btn_print_poster: "அச்சிடுக (Print Flyer)",
+    btn_copy_link: "இணைப்பை நகலெடு",
+    btn_share_site: "இணையதளத்தைப் பகிர்க",
+    toast_link_copied: "இணையதள இணைப்பு நகலெடுக்கப்பட்டது!",
+    toast_share_not_supported: "இணைப்பு நகலெடுக்கப்பட்டது!"
   }
 };
