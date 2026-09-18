@@ -855,7 +855,7 @@ class FloraCampusApp {
     qrContainer.innerHTML = "";
 
     // Generate QR payload linking to this tree on the live public internet website
-    const publicBaseUrl = "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const publicBaseUrl = "https://digital-eco-manaya.vercel.app/";
     const qrData = `${publicBaseUrl}?treeId=${encodeURIComponent(tree.id)}`;
 
     if (typeof QRCode !== "undefined") {
@@ -882,7 +882,7 @@ class FloraCampusApp {
   // Open Entire Website QR Code Modal
   openWebsiteQR() {
     // Official public internet URL for Digital Eco Manaya
-    const publicSiteUrl = "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const publicSiteUrl = "https://digital-eco-manaya.vercel.app/";
 
     const inputUrl = document.getElementById("website-qr-input-url");
     const displayUrl = document.getElementById("website-qr-display-url");
@@ -912,7 +912,7 @@ class FloraCampusApp {
   // Copy website URL to clipboard
   async copyWebsiteLink() {
     const inputUrl = document.getElementById("website-qr-input-url");
-    const url = inputUrl ? inputUrl.value : "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const url = inputUrl ? inputUrl.value : "https://digital-eco-manaya.vercel.app/";
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url);
@@ -931,7 +931,7 @@ class FloraCampusApp {
   // Share website via Web Share API
   async shareWebsite() {
     const inputUrl = document.getElementById("website-qr-input-url");
-    const url = inputUrl ? inputUrl.value : "https://lovindumadushanka.github.io/digital-eco-manaya/";
+    const url = inputUrl ? inputUrl.value : "https://digital-eco-manaya.vercel.app/";
     const shareData = {
       title: "DIGITAL ECO MANAYA | Sabaragamuwa University of Sri Lanka",
       text: "Explore campus flora, GIS tree mapping & carbon analytics at Sabaragamuwa University of Sri Lanka.",
@@ -1316,7 +1316,7 @@ class FloraCampusApp {
       const customUrl = e.target.value.trim();
       const qrContainer = document.getElementById("website-qr-render");
       const displayUrl = document.getElementById("website-qr-display-url");
-      if (displayUrl) displayUrl.textContent = customUrl || "https://lovindumadushanka.github.io/digital-eco-manaya/";
+      if (displayUrl) displayUrl.textContent = customUrl || "https://digital-eco-manaya.vercel.app/";
       if (qrContainer && customUrl && typeof QRCode !== "undefined") {
         qrContainer.innerHTML = "";
         new QRCode(qrContainer, {
