@@ -196,6 +196,7 @@ class CampusChartsController {
     if (this.zoneChart) {
       this.zoneChart.destroy();
       this.zoneChart = null;
+    }
     if (this.overallGrowthChart) {
       this.overallGrowthChart.destroy();
       this.overallGrowthChart = null;
